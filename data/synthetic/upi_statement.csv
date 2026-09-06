@@ -1,0 +1,40 @@
+txn_id,date,amount,type,counterparty,description,status,category
+TXN-20260102-001,2026-01-02 09:15:20,3500.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260103-002,2026-01-03 14:22:11,180.00,debit,Chai Point,Beverages,SUCCESS,merchant_qr
+TXN-20260105-003,2026-01-05 18:40:05,450.00,debit,HPCL Fuel Station,Fuel auto,SUCCESS,merchant_qr
+TXN-20260107-004,2026-01-07 20:10:45,1200.00,credit,Ramesh Sharma,Freelance delivery bonus,SUCCESS,p2p
+TXN-20260109-005,2026-01-09 11:30:12,3800.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260111-006,2026-01-11 16:15:00,850.00,debit,Supermarket Mart,Groceries,SUCCESS,merchant_qr
+TXN-20260114-007,2026-01-14 19:22:30,2500.00,credit,Swiggy Instamart,Delivery shift payout,SUCCESS,gig_earnings
+TXN-20260116-008,2026-01-16 10:45:10,4100.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260118-009,2026-01-18 13:10:00,320.00,debit,Apollo Pharmacy,Medicines,SUCCESS,merchant_qr
+TXN-20260121-010,2026-01-21 21:05:14,1500.00,credit,Client Amit,Direct transfer,SUCCESS,p2p
+TXN-20260123-011,2026-01-23 11:12:00,3900.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260126-012,2026-01-26 15:40:22,400.00,debit,Indian Oil Petrol,Fuel auto,SUCCESS,merchant_qr
+TXN-20260128-013,2026-01-28 17:33:10,1800.00,credit,Urban Co Partner,Handyman task payout,SUCCESS,gig_earnings
+TXN-20260130-014,2026-01-30 10:05:00,4200.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260202-015,2026-02-02 09:20:00,3600.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260204-016,2026-02-04 12:45:00,220.00,debit,Cafe Delight,Food,SUCCESS,merchant_qr
+TXN-20260206-017,2026-02-06 19:10:15,480.00,debit,HPCL Fuel Station,Fuel auto,SUCCESS,merchant_qr
+TXN-20260209-018,2026-02-09 11:30:00,4100.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260211-019,2026-02-11 16:50:00,1100.00,debit,More Supermarket,Household,SUCCESS,merchant_qr
+TXN-20260213-020,2026-02-13 18:20:00,2800.00,credit,Swiggy Instamart,Shift payout,SUCCESS,gig_earnings
+TXN-20260216-021,2026-02-16 10:15:00,3950.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260218-022,2026-02-18 14:05:00,350.00,debit,Medical Store,Healthcare,SUCCESS,merchant_qr
+TXN-20260220-023,2026-02-20 20:30:00,1700.00,credit,Client Priya,Catering assistance,SUCCESS,p2p
+TXN-20260223-024,2026-02-23 11:00:00,4300.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260225-025,2026-02-25 17:15:00,510.00,debit,Bharat Petroleum,Fuel auto,SUCCESS,merchant_qr
+TXN-20260227-026,2026-02-27 12:40:00,4150.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260302-027,2026-03-02 09:10:00,3750.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260304-028,2026-03-04 13:30:00,190.00,debit,Tea Stall,Refreshments,SUCCESS,merchant_qr
+TXN-20260306-029,2026-03-06 18:50:00,460.00,debit,HPCL Fuel Station,Fuel auto,SUCCESS,merchant_qr
+TXN-20260309-030,2026-03-09 11:15:00,4250.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260312-031,2026-03-12 16:20:00,920.00,debit,Reliance Retail,Groceries,SUCCESS,merchant_qr
+TXN-20260314-032,2026-03-14 19:40:00,3100.00,credit,Swiggy Instamart,Shift payout,SUCCESS,gig_earnings
+TXN-20260316-033,2026-03-16 10:30:00,4400.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260319-034,2026-03-19 14:15:00,280.00,debit,Local Kirana,Snacks,SUCCESS,merchant_qr
+TXN-20260321-035,2026-03-21 21:10:00,2000.00,credit,Client Rajesh,Event support payout,SUCCESS,p2p
+TXN-20260323-036,2026-03-23 11:25:00,4100.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings
+TXN-20260325-037,2026-03-25 17:45:00,490.00,debit,Shell Petrol Pump,Fuel,SUCCESS,merchant_qr
+TXN-20260327-038,2026-03-27 18:30:00,2200.00,credit,Urban Co Partner,Appliance repair payout,SUCCESS,gig_earnings
+TXN-20260330-039,2026-03-30 10:15:00,4500.00,credit,Zomato Payout,Weekly earnings payout,SUCCESS,gig_earnings

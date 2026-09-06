@@ -1,0 +1,38 @@
+[
+  {
+    "id": "GIG-202601",
+    "platform": "Zomato Partner",
+    "period_start": "2026-01-01T00:00:00Z",
+    "period_end": "2026-01-31T23:59:59Z",
+    "gross_earnings": 28400.00,
+    "net_payout": 26800.00,
+    "active_days": 26,
+    "trips_or_jobs": 312,
+    "incentives": 3400.00,
+    "tips": 1200.00
+  },
+  {
+    "id": "GIG-202602",
+    "platform": "Zomato Partner",
+    "period_start": "2026-02-01T00:00:00Z",
+    "period_end": "2026-02-28T23:59:59Z",
+    "gross_earnings": 27900.00,
+    "net_payout": 26350.00,
+    "active_days": 25,
+    "trips_or_jobs": 298,
+    "incentives": 3100.00,
+    "tips": 1150.00
+  },
+  {
+    "id": "GIG-202603",
+    "platform": "Zomato Partner",
+    "period_start": "2026-03-01T00:00:00Z",
+    "period_end": "2026-03-31T23:59:59Z",
+    "gross_earnings": 31200.00,
+    "net_payout": 29600.00,
+    "active_days": 27,
+    "trips_or_jobs": 340,
+    "incentives": 4200.00,
+    "tips": 1450.00
+  }
+]

@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tvs-blue: #1F4E8C;
+  --tvs-blue-dark: #173D70;
+  --tvs-green: #0B9348;
+  --tvs-green-dark: #08783B;
+  --surface: #FFFFFF;
+  --surface-soft: #F7F9F8;
+  --surface-muted: #F1F4F3;
+  --text-primary: #222222;
+  --text-secondary: #5F6368;
+  --text-muted: #858585;
+  --border: #DDE3E0;
+}
+
+body {
+  color: var(--text-primary);
+  background-color: var(--surface-soft);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
