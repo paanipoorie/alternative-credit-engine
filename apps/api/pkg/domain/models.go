@@ -76,6 +76,8 @@ type EvidenceDocument struct {
 	MimeType             string           `json:"mime_type"`
 	Format               DocumentFormat   `json:"format"`
 	SourceType           SourceType       `json:"source_type"`
+	ContentHash          string           `json:"content_hash,omitempty"`
+	FileSize             int64            `json:"file_size,omitempty"`
 	UploadedAt           time.Time        `json:"uploaded_at"`
 	ProcessingStatus     ProcessingStatus `json:"processing_status"`
 	ExtractionConfidence float64          `json:"extraction_confidence"`
@@ -127,6 +129,26 @@ const (
 	FlagEvidenceNeedsReview      = "EVIDENCE_NEEDS_REVIEW"
 )
 
+// Phase 6 Contradiction and Integrity Codes
+const (
+	CodeDeclaredObservedIncomeMismatch = "DECLARED_OBSERVED_INCOME_MISMATCH"
+	CodeCrossSourceIncomeMismatch      = "CROSS_SOURCE_INCOME_MISMATCH"
+	CodeDuplicateTransaction           = "DUPLICATE_TRANSACTION"
+	CodeDuplicateDocument              = "DUPLICATE_DOCUMENT"
+	CodeIncompleteStatement            = "INCOMPLETE_STATEMENT"
+	CodeLowObservationDensity          = "LOW_OBSERVATION_DENSITY"
+	CodeConflictingPaymentStatus       = "CONFLICTING_PAYMENT_STATUS"
+	CodeExtractionInconsistency        = "EXTRACTION_INCONSISTENCY"
+)
+
+// Evidence Quality Levels
+const (
+	QualityHigh       = "HIGH"
+	QualityMedium     = "MEDIUM"
+	QualityLow        = "LOW"
+	QualityUnreliable = "UNRELIABLE"
+)
+
 // ReconciliationStatus constants
 const (
 	ReconConsistent          = "CONSISTENT"
@@ -134,6 +156,7 @@ const (
 	ReconSignificantVariance = "SIGNIFICANT_VARIANCE"
 	ReconNotObserved         = "NOT_OBSERVED"
 	ReconPartiallyObserved   = "PARTIALLY_OBSERVED"
+	ReconNotComparable       = "NOT_COMPARABLE"
 )
 
 // FlagSeverity constants
@@ -148,6 +171,39 @@ const (
 	FlagWatch  = SeverityWatch
 	FlagReview = SeverityReview
 )
+
+// ContradictionFinding represents a specific deterministic contradiction or guardrail check finding
+type ContradictionFinding struct {
+	Code             string       `json:"code"`
+	Severity         FlagSeverity `json:"severity"` // "INFO", "WATCH", "REVIEW"
+	Title            string       `json:"title"`
+	Explanation      string       `json:"explanation"`
+	AffectedEvidence []string     `json:"affected_evidence"`
+	AffectedPeriod   string       `json:"affected_period,omitempty"`
+}
+
+// ReviewRequiredDetail explains specifically why an assessment was flagged for manual underwriting review
+type ReviewRequiredDetail struct {
+	TriggerReason    string   `json:"trigger_reason"`
+	Explanation      string   `json:"explanation"`
+	AffectedEvidence []string `json:"affected_evidence"`
+	ObservedPeriod   string   `json:"observed_period"`
+}
+
+// EvidenceQualityReport summarizes evidence integrity, completeness, cross-source consistency, and trust
+type EvidenceQualityReport struct {
+	OverallQuality     string                 `json:"overall_quality"`    // "HIGH", "MEDIUM", "LOW", "UNRELIABLE"
+	IntegrityStatus    string                 `json:"integrity_status"`   // "VERIFIED", "WARNING", "FAILED"
+	ConsistencyStatus  string                 `json:"consistency_status"` // "CONSISTENT", "MINOR_VARIANCE", "SIGNIFICANT_VARIANCE", "NOT_COMPARABLE"
+	ObservationWindow  string                 `json:"observation_window"` // e.g. "Jan 2026 – Mar 2026"
+	ObservationDensity string                 `json:"observation_density"` // "COMPLETE", "PARTIAL", "LOW_OBSERVATION_DENSITY"
+	DuplicateDocuments []string               `json:"duplicate_documents,omitempty"`
+	DuplicateTxnCount  int                    `json:"duplicate_txn_count"`
+	CompletenessNotes  []string               `json:"completeness_notes,omitempty"`
+	ContradictionCount int                    `json:"contradiction_count"`
+	QualitySummary     string                 `json:"quality_summary"`
+	Contradictions     []ContradictionFinding `json:"contradictions,omitempty"`
+}
 
 // AssessmentFlag represents a deterministic underwriting alert or signal
 type AssessmentFlag struct {
@@ -166,7 +222,7 @@ type ReconciliationItem struct {
 	DeclaredValue      string   `json:"declared_value"`
 	ObservedValue      string   `json:"observed_value"`
 	VariancePct        float64  `json:"variance_pct,omitempty"`
-	Status             string   `json:"status"` // "CONSISTENT", "MINOR_VARIANCE", "SIGNIFICANT_VARIANCE", "NOT_OBSERVED"
+	Status             string   `json:"status"` // "CONSISTENT", "MINOR_VARIANCE", "SIGNIFICANT_VARIANCE", "NOT_OBSERVED", "NOT_COMPARABLE"
 	Description        string   `json:"description,omitempty"`
 	Explanation        string   `json:"explanation,omitempty"`
 	SupportingEvidence []string `json:"supporting_evidence,omitempty"`
@@ -189,14 +245,26 @@ type ObservedProfile struct {
 	PrimaryInflowSource     string  `json:"primary_inflow_source"`
 }
 
+// TraceStageDetails represents the 7-stage provenance lifecycle for an evidence dimension
+type TraceStageDetails struct {
+	Document           string `json:"document"`
+	Extraction         string `json:"extraction"`
+	Validation         string `json:"validation"`
+	Normalization      string `json:"normalization"`
+	ConsistencyCheck   string `json:"consistency_check"`
+	BehaviouralSignal  string `json:"behavioural_signal"`
+	AssessmentImpact   string `json:"assessment_impact"`
+}
+
 // EvidenceTraceItem explains how evidence signals contributed to a specific behavioural dimension
 type EvidenceTraceItem struct {
-	Dimension        string   `json:"dimension"`       // "cash_flow_stability", "income_consistency", etc.
-	DimensionTitle   string   `json:"dimension_title"` // "Cash-Flow Stability"
-	Score            float64  `json:"score"`           // 0 - 100
-	Sources          []string `json:"sources"`         // ["UPI Statement", "Platform Payouts"]
-	ExtractedSignals []string `json:"extracted_signals"`
-	Summary          string   `json:"summary"`
+	Dimension        string             `json:"dimension"`       // "cash_flow_stability", "income_consistency", etc.
+	DimensionTitle   string             `json:"dimension_title"` // "Cash-Flow Stability"
+	Score            float64            `json:"score"`           // 0 - 100
+	Sources          []string           `json:"sources"`         // ["UPI Statement", "Platform Payouts"]
+	ExtractedSignals []string           `json:"extracted_signals"`
+	Summary          string             `json:"summary"`
+	Stages           *TraceStageDetails `json:"stages,omitempty"`
 }
 
 // ValidationResult represents validation checks performed on extracted evidence
@@ -218,6 +286,8 @@ type UPITransaction struct {
 	Description  string    `json:"description"`
 	Status       string    `json:"status"`             // "SUCCESS", "FAILED", "PENDING"
 	Category     string    `json:"category,omitempty"` // "p2p", "merchant_qr", "salary", "bill_payment", etc.
+	IsDuplicate  bool      `json:"is_duplicate,omitempty"`
+	DuplicateRef string    `json:"duplicate_ref,omitempty"`
 }
 
 // UtilityPayment represents a utility bill payment record
@@ -285,6 +355,11 @@ type ProvenanceItem struct {
 	ValidationStatus     string         `json:"validation_status"`     // "VALID", "PARTIAL", "NEEDS_REVIEW", "FAILED", "PASSED"
 	ValidationNotes      []string       `json:"validation_notes,omitempty"`
 	Origin               EvidenceOrigin `json:"origin"`                // "LIVE_N8N_GEMINI", "LIVE_GEMINI", "LIVE_PARSER", "SYNTHETIC_DEMO"
+	ContentHash          string         `json:"content_hash,omitempty"`
+	MimeType             string         `json:"mime_type,omitempty"`
+	FileSize             int64          `json:"file_size,omitempty"`
+	CompletenessStatus   string         `json:"completeness_status,omitempty"` // "COMPLETE", "PARTIAL", "LOW_OBSERVATION_DENSITY"
+	DuplicateOf          string         `json:"duplicate_of,omitempty"`
 	IngestedAt           time.Time      `json:"ingested_at"`
 }
 
@@ -399,28 +474,31 @@ type DeclaredProfile struct {
 
 // AssessmentProfile represents the complete evaluation result
 type AssessmentProfile struct {
-	AssessmentID      string               `json:"assessment_id"`
-	CustomerID        string               `json:"customer_id"`
-	CustomerName      string               `json:"customer_name,omitempty"`
-	PersonaType       string               `json:"persona_type,omitempty"` // "gig_worker", "small_merchant", "first_time_borrower", "informal_worker"
-	DeclaredProfile   *DeclaredProfile     `json:"declared_profile,omitempty"`
-	ObservedProfile   *ObservedProfile     `json:"observed_profile,omitempty"`
-	Reconciliation    *ReconciliationReport `json:"reconciliation,omitempty"`
-	BehavioralScore   float64              `json:"behavioral_score"`    // 0 - 100
-	FinalScore        int                  `json:"final_score"`         // 300 - 900 (300 + 6 * BehavioralScore)
-	RiskBand          string               `json:"risk_band"`           // "Low Risk", "Low-Moderate Risk", "Moderate Risk", "Higher Risk"
-	AssessmentBand    string               `json:"assessment_band"`     // "LOW_RISK", "MODERATE_RISK", "HIGH_RISK", "REVIEW_REQUIRED"
-	ConfidenceScore   int                  `json:"confidence_score"`    // 0 - 100%
-	DataCoverageScore int                  `json:"data_coverage_score"` // 0 - 100%
-	Dimensions        BehavioralDimensions `json:"dimensions"`
-	DimensionWeights  map[string]float64   `json:"dimension_weights"`
-	PositiveFactors   []ExplainableReason  `json:"positive_factors"`
-	AttentionFactors  []ExplainableReason  `json:"attention_factors"`
-	Features          DerivedFeatures      `json:"features"`
-	Provenance        []ProvenanceItem     `json:"provenance"`
-	EvidenceTraces    []EvidenceTraceItem  `json:"evidence_traces,omitempty"`
-	AssessmentFlags   []AssessmentFlag     `json:"assessment_flags,omitempty"`
-	CoverageBreakdown map[string]bool      `json:"coverage_breakdown"`
-	CreatedAt         time.Time            `json:"created_at"`
-	Disclaimer        string               `json:"disclaimer"`
+	AssessmentID      string                 `json:"assessment_id"`
+	CustomerID        string                 `json:"customer_id"`
+	CustomerName      string                 `json:"customer_name,omitempty"`
+	PersonaType       string                 `json:"persona_type,omitempty"` // "gig_worker", "small_merchant", "first_time_borrower", "informal_worker"
+	DeclaredProfile   *DeclaredProfile       `json:"declared_profile,omitempty"`
+	ObservedProfile   *ObservedProfile       `json:"observed_profile,omitempty"`
+	Reconciliation    *ReconciliationReport  `json:"reconciliation,omitempty"`
+	EvidenceQuality   *EvidenceQualityReport `json:"evidence_quality,omitempty"`
+	Contradictions    []ContradictionFinding `json:"contradictions,omitempty"`
+	ReviewDetails     *ReviewRequiredDetail  `json:"review_details,omitempty"`
+	BehavioralScore   float64                `json:"behavioral_score"`    // 0 - 100
+	FinalScore        int                    `json:"final_score"`         // 300 - 900 (300 + 6 * BehavioralScore)
+	RiskBand          string                 `json:"risk_band"`           // "Low Risk", "Low-Moderate Risk", "Moderate Risk", "Higher Risk"
+	AssessmentBand    string                 `json:"assessment_band"`     // "LOW_RISK", "MODERATE_RISK", "HIGH_RISK", "REVIEW_REQUIRED"
+	ConfidenceScore   int                    `json:"confidence_score"`    // 0 - 100%
+	DataCoverageScore int                    `json:"data_coverage_score"` // 0 - 100%
+	Dimensions        BehavioralDimensions   `json:"dimensions"`
+	DimensionWeights  map[string]float64     `json:"dimension_weights"`
+	PositiveFactors   []ExplainableReason    `json:"positive_factors"`
+	AttentionFactors  []ExplainableReason    `json:"attention_factors"`
+	Features          DerivedFeatures        `json:"features"`
+	Provenance        []ProvenanceItem       `json:"provenance"`
+	EvidenceTraces    []EvidenceTraceItem    `json:"evidence_traces,omitempty"`
+	AssessmentFlags   []AssessmentFlag       `json:"assessment_flags,omitempty"`
+	CoverageBreakdown map[string]bool        `json:"coverage_breakdown"`
+	CreatedAt         time.Time              `json:"created_at"`
+	Disclaimer        string                 `json:"disclaimer"`
 }

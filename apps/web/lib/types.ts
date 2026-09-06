@@ -64,6 +64,11 @@ export interface ProvenanceItem {
   source_quality_score: number;
   validation_status: string;
   validation_notes?: string[];
+  content_hash?: string;
+  mime_type?: string;
+  file_size?: number;
+  completeness_status?: string;
+  duplicate_of?: string;
   origin?: 'LIVE_N8N_GEMINI' | 'LIVE_GEMINI' | 'LIVE_PARSER' | 'SYNTHETIC_DEMO';
   ingested_at: string;
 }
@@ -160,6 +165,36 @@ export interface AssessmentFlag {
   supporting_evidence?: string[];
 }
 
+export interface ContradictionFinding {
+  code: string;
+  severity: FlagSeverity;
+  title: string;
+  explanation: string;
+  affected_evidence: string[];
+  affected_period?: string;
+}
+
+export interface ReviewRequiredDetail {
+  trigger_reason: string;
+  explanation: string;
+  affected_evidence: string[];
+  observed_period: string;
+}
+
+export interface EvidenceQualityReport {
+  overall_quality: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNRELIABLE' | string;
+  integrity_status: string;
+  consistency_status: string;
+  observation_window: string;
+  observation_density: string;
+  duplicate_documents?: string[];
+  duplicate_txn_count: number;
+  completeness_notes?: string[];
+  contradiction_count: number;
+  quality_summary: string;
+  contradictions?: ContradictionFinding[];
+}
+
 export interface ReconciliationItem {
   field: string;
   declared_value: string;
@@ -186,6 +221,16 @@ export interface ObservedProfile {
   primary_inflow_source: string;
 }
 
+export interface TraceStageDetails {
+  document: string;
+  extraction: string;
+  validation: string;
+  normalization: string;
+  consistency_check: string;
+  behavioural_signal: string;
+  assessment_impact: string;
+}
+
 export interface EvidenceTraceItem {
   dimension: string;
   dimension_title: string;
@@ -193,6 +238,7 @@ export interface EvidenceTraceItem {
   sources: string[];
   extracted_signals: string[];
   summary: string;
+  stages?: TraceStageDetails;
 }
 
 export interface AssessmentProfile {
@@ -203,6 +249,9 @@ export interface AssessmentProfile {
   declared_profile?: DeclaredProfile;
   observed_profile?: ObservedProfile;
   reconciliation?: ReconciliationReport;
+  evidence_quality?: EvidenceQualityReport;
+  contradictions?: ContradictionFinding[];
+  review_details?: ReviewRequiredDetail;
   behavioral_score: number;
   final_score: number;
   risk_band: string;

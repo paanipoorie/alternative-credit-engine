@@ -53,6 +53,8 @@ func RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("/api/assess/analyze", handleAnalyze)
 	mux.HandleFunc("/api/assess/demo", handleDemoAssessment)
+	mux.HandleFunc("/api/assess/demo/strong", handleStrongDemoAssessment)
+	mux.HandleFunc("/api/assess/demo/review", handleReviewDemoAssessment)
 	mux.HandleFunc("/api/assess/what-if", handleWhatIf)
 }
 
@@ -241,6 +243,44 @@ func handleDemoAssessment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	profile := defaultService.AssessCurrent("DEMO-RAJESH-001", "Rajesh Kumar", "gig_worker", groundTruth, demoDeclared)
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(profile)
+}
+
+func handleStrongDemoAssessment(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	evidence, declared := service.LoadStrongSyntheticProfile()
+	var ptrList []*domain.CanonicalEvidence
+	for i := range evidence {
+		ptrList = append(ptrList, &evidence[i])
+	}
+	defaultService.SetEvidenceList(ptrList)
+
+	profile := defaultService.AssessCurrent("DEMO-PRIYA-002", declared.FullName, declared.EmploymentType, evidence, declared)
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(profile)
+}
+
+func handleReviewDemoAssessment(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	evidence, declared := service.LoadContradictorySyntheticProfile()
+	var ptrList []*domain.CanonicalEvidence
+	for i := range evidence {
+		ptrList = append(ptrList, &evidence[i])
+	}
+	defaultService.SetEvidenceList(ptrList)
+
+	profile := defaultService.AssessCurrent("DEMO-AMIT-003", declared.FullName, declared.EmploymentType, evidence, declared)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(profile)

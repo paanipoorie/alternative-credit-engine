@@ -15,6 +15,8 @@ import {
   clearAllEvidence,
   analyzeProfile,
   fetchDemoProfile,
+  fetchStrongDemoProfile,
+  fetchReviewDemoProfile,
 } from '../lib/api';
 
 const DEFAULT_INITIAL_PROFILE: DeclaredProfile = {
@@ -109,6 +111,33 @@ export default function Home() {
     }
   };
 
+  const handleSelectScenario = async (scenario: 'baseline' | 'strong' | 'review') => {
+    setIsLoadingSample(true);
+    try {
+      let profile: AssessmentProfile;
+      if (scenario === 'strong') {
+        profile = await fetchStrongDemoProfile();
+      } else if (scenario === 'review') {
+        profile = await fetchReviewDemoProfile();
+      } else {
+        profile = await fetchDemoProfile();
+      }
+      setAssessment(profile);
+      if (profile.declared_profile) {
+        setDeclaredProfile(profile.declared_profile);
+      }
+      const list = await fetchEvidenceList().catch(() => []);
+      if (list && list.length > 0) {
+        setEvidenceList(list);
+      }
+      setActiveStep('assessment');
+    } catch (err) {
+      console.error('Failed to switch scenario:', err);
+    } finally {
+      setIsLoadingSample(false);
+    }
+  };
+
   const handleLoadSyntheticSample = async (filename: string) => {
     setIsLoadingSample(true);
     try {
@@ -184,6 +213,8 @@ export default function Home() {
             onInspectEvidence={(ev) => setInspectEvidence(ev)}
             onUploadMore={() => setActiveStep('evidence')}
             onReset={handleReset}
+            onSelectScenario={handleSelectScenario}
+            isLoadingScenario={isLoadingSample}
           />
         )}
       </main>

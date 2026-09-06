@@ -76,6 +76,22 @@ export async function fetchDemoProfile(): Promise<AssessmentProfile> {
   return res.json();
 }
 
+export async function fetchStrongDemoProfile(): Promise<AssessmentProfile> {
+  const res = await fetch(`${API_BASE}/api/assess/demo/strong`);
+  if (!res.ok) {
+    throw new Error(`Strong demo assessment failed: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchReviewDemoProfile(): Promise<AssessmentProfile> {
+  const res = await fetch(`${API_BASE}/api/assess/demo/review`);
+  if (!res.ok) {
+    throw new Error(`Review demo assessment failed: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export async function calculateWhatIf(
   currentAssessment: AssessmentProfile,
   incomeStabilityDelta: number,

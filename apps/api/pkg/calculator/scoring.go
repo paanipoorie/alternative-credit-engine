@@ -19,10 +19,13 @@ const (
 
 // Assess calculates the complete Alternative Credit Profile deterministically
 func Assess(customerID, customerName, personaType string, evidenceList []domain.CanonicalEvidence, declared ...*domain.DeclaredProfile) domain.AssessmentProfile {
-	features := CalculateFeatures(evidenceList)
+	// Phase 6: Document and Transaction Deduplication
+	dedupedEvidence, duplicateDocs, dupTxnCount := DeduplicateAndFilterEvidence(evidenceList)
+
+	features := CalculateFeatures(dedupedEvidence)
 
 	// 1. Calculate 5 Behavioral Dimensions (each 0 - 100)
-	dimensions := CalculateDimensions(features, evidenceList)
+	dimensions := CalculateDimensions(features, dedupedEvidence)
 
 	// 2. Composite Behavioral Score: B = 0.30*C + 0.20*I + 0.20*P + 0.15*A + 0.15*R
 	bScore := (WeightCashFlowStability * dimensions.CashFlowStability) +
@@ -55,30 +58,35 @@ func Assess(customerID, customerName, personaType string, evidenceList []domain.
 	}
 
 	// 5. Calculate Confidence and Data Coverage
-	confidenceScore := CalculateConfidence(evidenceList)
-	coverageScore, coverageBreakdown := CalculateCoverage(evidenceList)
+	confidenceScore := CalculateConfidence(dedupedEvidence)
+	coverageScore, coverageBreakdown := CalculateCoverage(dedupedEvidence)
 
 	// 6. Generate Grounded Explainable Reasons
-	positiveFactors, attentionFactors := GenerateExplainableReasons(features, dimensions, evidenceList)
+	positiveFactors, attentionFactors := GenerateExplainableReasons(features, dimensions, dedupedEvidence)
 
 	// 7. Phase 5: Build Observed Profile & Financial Reconciliation
 	var decProfile *domain.DeclaredProfile
 	if len(declared) > 0 && declared[0] != nil {
 		decProfile = declared[0]
 	}
-	observedProfile := BuildObservedProfile(features, evidenceList)
-	reconciliation := ReconcileProfiles(decProfile, observedProfile, features, evidenceList)
+	observedProfile := BuildObservedProfile(features, dedupedEvidence)
+	reconciliation := ReconcileProfiles(decProfile, observedProfile, features, dedupedEvidence)
 
-	// 8. Phase 5: Deterministic Assessment Flags & Underwriting Band
-	assessmentFlags := GenerateAssessmentFlags(decProfile, features, dimensions, evidenceList, reconciliation)
-	assessmentBand := DetermineAssessmentBand(finalScore, confidenceScore, coverageScore, assessmentFlags, evidenceList)
+	// 8. Phase 6: Observation Density & Contradiction Engine
+	obsWindow, obsDensity, completenessNotes := EvaluateObservationDensity(features, dedupedEvidence)
+	contradictions := RunContradictionEngine(decProfile, features, dedupedEvidence, reconciliation, dupTxnCount, duplicateDocs)
+	evidenceQuality := AssessEvidenceQuality(dedupedEvidence, contradictions, reconciliation, dupTxnCount, duplicateDocs, obsWindow, obsDensity, completenessNotes)
 
-	// 9. Phase 5: Evidence Contribution Traces
-	evidenceTraces := GenerateEvidenceTraces(features, dimensions, evidenceList)
+	// 9. Phase 5 & 6: Deterministic Assessment Flags & Underwriting Decision Guardrails
+	assessmentFlags := GenerateAssessmentFlags(decProfile, features, dimensions, dedupedEvidence, reconciliation)
+	assessmentBand, reviewDetails := EvaluateDecisionGuardrails(finalScore, confidenceScore, coverageScore, evidenceQuality, contradictions, assessmentFlags, dedupedEvidence)
 
-	// 10. Collect Provenance
+	// 10. Phase 6: 7-Stage Evidence Contribution Traces
+	evidenceTraces := GenerateSevenStageTraces(features, dimensions, dedupedEvidence)
+
+	// 11. Collect Provenance
 	var provenanceList []domain.ProvenanceItem
-	for _, ev := range evidenceList {
+	for _, ev := range dedupedEvidence {
 		provenanceList = append(provenanceList, ev.Provenance)
 	}
 
@@ -98,6 +106,9 @@ func Assess(customerID, customerName, personaType string, evidenceList []domain.
 		DeclaredProfile:   decProfile,
 		ObservedProfile:   observedProfile,
 		Reconciliation:    reconciliation,
+		EvidenceQuality:   evidenceQuality,
+		Contradictions:    contradictions,
+		ReviewDetails:     reviewDetails,
 		BehavioralScore:   math.Round(bScore*100) / 100,
 		FinalScore:        finalScore,
 		RiskBand:          riskBand,

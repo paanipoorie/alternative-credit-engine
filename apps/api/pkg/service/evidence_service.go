@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -61,6 +62,10 @@ func (s *EvidenceService) IngestFile(ctx context.Context, filename, mimeType str
 		return nil, fmt.Errorf("unsupported file extension '%s'. Please upload PDF, CSV, Excel, or Image files", ext)
 	}
 
+	// Compute SHA-256 cryptographic identity hash for the raw uploaded content
+	contentHashBytes := sha256.Sum256(data)
+	contentHash := fmt.Sprintf("%x", contentHashBytes)
+
 	// 1. Text Extraction (if applicable)
 	var extractedText string
 	var extractErr error
@@ -68,7 +73,6 @@ func (s *EvidenceService) IngestFile(ctx context.Context, filename, mimeType str
 	if docFormat == domain.FormatPDF {
 		extractedText, extractErr = extractor.ExtractTextFromPDF(data)
 		if extractErr != nil {
-			// Non-fatal if AI vision can read image/scan
 			extractedText = ""
 		}
 	} else if docFormat == domain.FormatCSV || docFormat == domain.FormatJSON {
@@ -95,9 +99,15 @@ func (s *EvidenceService) IngestFile(ctx context.Context, filename, mimeType str
 		return nil, fmt.Errorf("evidence extraction failed: %w", err)
 	}
 
+	// Attach full document integrity metadata to Provenance
+	evidence.Provenance.ContentHash = contentHash
+	evidence.Provenance.MimeType = mimeType
+	evidence.Provenance.FileSize = int64(len(data))
+	evidence.Provenance.DocumentName = filename
+	evidence.Provenance.DocumentFormat = docFormat
+
 	// Check for special synthetic datasets if uploaded
 	if len(evidence.UtilityPayments) == 1 && strings.Contains(strings.ToLower(filename), "bescom") {
-		// If synthetic 1-month bill is uploaded, check if multi-month synthetic file is available
 		if multiBills := loadCompanionUtilityBills(); len(multiBills) > 0 {
 			evidence.UtilityPayments = multiBills
 			evidence.Provenance.RecordCount = len(multiBills)
@@ -180,7 +190,6 @@ func (s *EvidenceService) AssessCurrent(customerID, customerName, personaType st
 	}
 
 	if len(evidenceToAssess) == 0 {
-		// Default to synthetic demo ground truth if no evidence present
 		evidenceToAssess = LoadSyntheticGroundTruth()
 	}
 
@@ -226,7 +235,7 @@ func loadCompanionUtilityBills() []domain.UtilityPayment {
 	return nil
 }
 
-// LoadSyntheticGroundTruth loads the full synthetic evidence bundle (UPI, Utility, Gig)
+// LoadSyntheticGroundTruth loads the full synthetic evidence bundle (UPI, Utility, Gig) for Rajesh Kumar (Baseline)
 func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 	dataDir := findDataDir()
 	var evidenceList []domain.CanonicalEvidence
@@ -234,6 +243,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 	// 1. UPI CSV
 	csvPath := filepath.Join(dataDir, "upi_statement.csv")
 	if csvBytes, err := os.ReadFile(csvPath); err == nil {
+		hash := fmt.Sprintf("%x", sha256.Sum256(csvBytes))
 		r := csv.NewReader(strings.NewReader(string(csvBytes)))
 		if rows, err := r.ReadAll(); err == nil {
 			var txns []domain.UPITransaction
@@ -275,6 +285,9 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 					ExtractionConfidence: 0.98,
 					SourceQualityScore:   0.95,
 					ValidationStatus:     domain.ValidationValid,
+					ContentHash:          hash,
+					MimeType:             "text/csv",
+					FileSize:             int64(len(csvBytes)),
 					Origin:               domain.OriginSyntheticDemo,
 					IngestedAt:           time.Now(),
 				},
@@ -288,6 +301,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 	// 2. Utility Bills
 	utilPath := filepath.Join(dataDir, "utility_bills.json")
 	if utilBytes, err := os.ReadFile(utilPath); err == nil {
+		hash := fmt.Sprintf("%x", sha256.Sum256(utilBytes))
 		var bills []domain.UtilityPayment
 		if err := json.Unmarshal(utilBytes, &bills); err == nil {
 			evItem := domain.CanonicalEvidence{
@@ -311,6 +325,9 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 					ExtractionConfidence: 0.95,
 					SourceQualityScore:   0.90,
 					ValidationStatus:     domain.ValidationValid,
+					ContentHash:          hash,
+					MimeType:             "application/pdf",
+					FileSize:             int64(len(utilBytes)),
 					Origin:               domain.OriginSyntheticDemo,
 					IngestedAt:           time.Now(),
 				},
@@ -324,6 +341,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 	// 3. Gig Payouts
 	gigPath := filepath.Join(dataDir, "gig_payouts.json")
 	if gigBytes, err := os.ReadFile(gigPath); err == nil {
+		hash := fmt.Sprintf("%x", sha256.Sum256(gigBytes))
 		var payouts []domain.GigPayout
 		if err := json.Unmarshal(gigBytes, &payouts); err == nil {
 			evItem := domain.CanonicalEvidence{
@@ -347,6 +365,9 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 					ExtractionConfidence: 0.96,
 					SourceQualityScore:   0.95,
 					ValidationStatus:     domain.ValidationValid,
+					ContentHash:          hash,
+					MimeType:             "application/pdf",
+					FileSize:             int64(len(gigBytes)),
 					Origin:               domain.OriginSyntheticDemo,
 					IngestedAt:           time.Now(),
 				},
@@ -358,4 +379,101 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 	}
 
 	return evidenceList
+}
+
+// LoadStrongSyntheticProfile provides a 4-source verified prime profile (Scenario A: Multi-source, High Quality, Low Risk)
+func LoadStrongSyntheticProfile() ([]domain.CanonicalEvidence, *domain.DeclaredProfile) {
+	baseList := LoadSyntheticGroundTruth()
+
+	// Add 4th source: Telecom Recharges
+	t1, _ := time.Parse("2006-01-02", "2026-01-05")
+	t2, _ := time.Parse("2006-01-02", "2026-02-04")
+	t3, _ := time.Parse("2006-01-02", "2026-03-06")
+
+	telecomEv := domain.CanonicalEvidence{
+		ID:                   "EV-TEL-DEMO-004",
+		CustomerID:           "DEMO-PRIYA-002",
+		SourceType:           domain.SourceTelecom,
+		SourceProvider:       "Reliance Jio Prepaid",
+		PeriodStart:          "2026-01-01",
+		PeriodEnd:            "2026-03-31",
+		SourceQuality:        0.95,
+		ExtractionConfidence: 0.98,
+		Origin:               domain.OriginSyntheticDemo,
+		Provenance: domain.ProvenanceItem{
+			EvidenceID:           "EV-TEL-DEMO-004",
+			SourceType:           domain.SourceTelecom,
+			DocumentName:         "jio_recharge_history.pdf",
+			DocumentFormat:       domain.FormatPDF,
+			PeriodStart:          "2026-01-01",
+			PeriodEnd:            "2026-03-31",
+			RecordCount:          3,
+			ExtractionConfidence: 0.98,
+			SourceQualityScore:   0.95,
+			ValidationStatus:     domain.ValidationValid,
+			ContentHash:          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			MimeType:             "application/pdf",
+			FileSize:             104200,
+			Origin:               domain.OriginSyntheticDemo,
+			IngestedAt:           time.Now(),
+		},
+		TelecomRecords: []domain.TelecomRecharge{
+			{ID: "TEL-001", Operator: "Jio", Date: t1, Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
+			{ID: "TEL-002", Operator: "Jio", Date: t2, Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
+			{ID: "TEL-003", Operator: "Jio", Date: t3, Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
+		},
+	}
+	telecomEv.Events = extractor.NormalizeToEvents(&telecomEv)
+
+	fullList := append(baseList, telecomEv)
+
+	declared := &domain.DeclaredProfile{
+		FullName:        "Priya Sundaram",
+		Age:             31,
+		City:            "Bengaluru",
+		Pincode:         "560001",
+		EmploymentType:  "gig_worker",
+		MonthlyIncome:   34000,
+		IncomeChannel:   "upi",
+		MonthlyExpenses: 15000,
+		Dependents:      1,
+	}
+
+	return fullList, declared
+}
+
+// LoadContradictorySyntheticProfile creates a profile with high score claim + income contradictions & duplicate files (Scenario B)
+func LoadContradictorySyntheticProfile() ([]domain.CanonicalEvidence, *domain.DeclaredProfile) {
+	// Base synthetic UPI statement
+	baseList := LoadSyntheticGroundTruth()
+
+	// Clone UPI statement to simulate identical duplicate document upload under different name
+	var dupUPI domain.CanonicalEvidence
+	for _, ev := range baseList {
+		if ev.SourceType == domain.SourceUPI {
+			dupUPI = ev
+			dupUPI.ID = "EV-UPI-DUP-999"
+			dupUPI.Provenance.DocumentName = "upi_statement_february_copy.csv"
+			// Same ContentHash to trigger cryptographic duplicate detection
+			break
+		}
+	}
+
+	// Add duplicate UPI item to evidence list
+	contradictoryList := append(baseList, dupUPI)
+
+	// Applicant claims ₹75,000 monthly income, but verified UPI inflows are only ~₹34,000/month
+	declared := &domain.DeclaredProfile{
+		FullName:        "Amit Verma",
+		Age:             28,
+		City:            "Mumbai",
+		Pincode:         "400001",
+		EmploymentType:  "salaried",
+		MonthlyIncome:   75000, // Significant divergence (>50% mismatch with observed ₹34,000)
+		IncomeChannel:   "bank_transfer",
+		MonthlyExpenses: 45000,
+		Dependents:      3,
+	}
+
+	return contradictoryList, declared
 }
