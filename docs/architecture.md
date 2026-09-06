@@ -1,310 +1,147 @@
 # System Architecture
 
-## 1. Architecture principle
+## 1. Core Architecture Principle
 
-Separate **orchestration, AI interpretation, deterministic computation and lending decisioning**.
-
-```text
-AI agents → structured evidence/findings
-Feature engine → mathematical features
-Risk model → risk score
-Decision policy → business decision
-```
-
-## 2. Full architecture
+The system strictly decouples **orchestration, AI interpretation, deterministic computation, and lending decisioning**:
 
 ```text
-                         CUSTOMER
-                            │
-                            ▼
-                      ┌───────────┐
-                      │ Next.js   │
-                      │ Web App   │
-                      └─────┬─────┘
-                            │
-                            ▼
-                      ┌───────────┐
-                      │  Go API   │
-                      └─────┬─────┘
-                            │
-                            ▼
-                      ┌───────────┐
-                      │    n8n    │
-                      │Orchestrator│
-                      └─────┬─────┘
-                            │
-              ┌─────────────┼─────────────┐
-              ▼             ▼             ▼
-       Document Agent   UPI Agent     GST Agent
-              │             │             │
-              └─────────────┼─────────────┘
-                            ▼
-                  Evidence Extraction
-                            │
-                            ▼
-                       Validation
-                            │
-                            ▼
-                 Normalization Layer
-                            │
-                            ▼
-                  Deterministic Features
-                            │
-                            ▼
-                Evidence Reconciliation
-                       Agent
-                            │
-                            ▼
-                       Risk Model
-                            │
-                            ▼
-                    Decision Policy
-                            │
-                 ┌──────────┴──────────┐
-                 ▼                     ▼
-              Score               Explanation
-                 │                     │
-                 └──────────┬──────────┘
-                            ▼
-                      Customer Profile
+┌────────────────────────────────┐
+│ Generative AI (Gemini / n8n)   │  ──►  Extraction, Classification & Grounded Synthesis
+├────────────────────────────────┤
+│ Document Integrity Engine      │  ──►  SHA-256 Hashing, Deduplication & Validation
+├────────────────────────────────┤
+│ Feature & Scoring Engine (Go)  │  ──►  Deterministic Math & Normalized Behavioural Signals
+├────────────────────────────────┤
+│ Lending Policy Guardrails      │  ──►  Reconciliation, Contradiction Flags & Review Alerts
+└────────────────────────────────┘
 ```
 
-## 3. What is an AI model?
+---
 
-An AI model is the underlying machine-learning system that processes input and generates output.
-
-For this prototype, Gemini is the foundation model.
-
-Gemini can be used for:
-
-- document understanding
-- classification
-- extraction
-- semantic interpretation
-- reconciliation
-- explanation generation
-
-Gemini is **not the credit-scoring model**.
-
-## 4. What is an agent?
-
-An agent is an application built around a model that has:
+## 2. End-to-End System Topology
 
 ```text
-Model
-+ Instructions
-+ Context
-+ Tools
-+ Output schema
-+ Guardrails
+                             APPLICANT / UNDERWRITER
+                                        │
+                                        ▼
+                            ┌─────────────────────────┐
+                            │  Next.js 15 Web Client  │
+                            │  - Step 1: Declared Form│
+                            │  - Step 2: Evidence Hub │
+                            │  - Step 3: Pipeline Run │
+                            │  - Step 4: Assessment UI│
+                            └───────────┬─────────────┘
+                                        │ JSON over HTTP
+                                        ▼
+                            ┌─────────────────────────┐
+                            │   Go API Gateway (:8080)│
+                            │   (pkg/handler, service)│
+                            └───────────┬─────────────┘
+                                        │
+          ┌─────────────────────────────┴─────────────────────────────┐
+          ▼                                                           ▼
+┌──────────────────────────────────────┐            ┌──────────────────────────────────────┐
+│  AI Ingestion & Extraction (Gemini)  │            │  Document Integrity & Deduplication  │
+│  - Document Classifier               │            │  - Content Hashing (SHA-256)         │
+│  - Structured Data Extractor         │            │  - Document-level Deduplication      │
+│  - Semantic Normalization Agent      │            │  - Record-level Deduplication        │
+└──────────────────┬───────────────────┘            └──────────────────┬───────────────────┘
+                   │                                                   │
+                   └─────────────────────┬─────────────────────────────┘
+                                         ▼
+                            ┌─────────────────────────┐
+                            │  Canonical Evidence Bus │
+                            │  (Domain Model Events)  │
+                            └────────────┬────────────┘
+                                         ▼
+                            ┌─────────────────────────┐
+                            │  Deterministic Feature  │
+                            │  & Dimension Calculator │
+                            │  - 5 Behavioral Dims    │
+                            │  - Volatility, Inflows  │
+                            └────────────┬────────────┘
+                                         ▼
+                            ┌─────────────────────────┐
+                            │ Financial Reconciliation│
+                            │ & Policy Guardrails     │
+                            │ - Declared vs Observed  │
+                            │ - Cross-source Anomaly  │
+                            │ - Review Triggers       │
+                            └────────────┬────────────┘
+                                         ▼
+                            ┌─────────────────────────┐
+                            │ Single Synthesis Engine │
+                            │ - Grounded AI Summary   │
+                            │ - Progressive Provenance│
+                            │ - Non-mutating What-If  │
+                            └─────────────────────────┘
 ```
 
-Example:
+---
+
+## 3. Seven-Stage Dimensional Trace Pipeline
+
+Every behavioural dimension ($0–100$) is verifiable via an unbroken 7-stage lineage:
 
 ```text
-UPI Analysis Agent
-    │
-    ├── Gemini
-    ├── UPI-specific instructions
-    ├── normalized transaction context
-    ├── calculation/anomaly tools
-    ├── structured JSON output
-    └── financial-data guardrails
+1. Document Ingestion    ──► Ingested filename, MIME type, SHA-256 fingerprint, byte size.
+2. Data Extraction       ──► Model/parser confidence rating, structured records identified.
+3. Validation            ──► Header format check, date sequence validation, range assertions.
+4. Normalization         ──► Normalized CanonicalEvidence events (inflows, outflows, bills).
+5. Consistency Check     ──► Deduplication matching, cross-source sanity verification.
+6. Behavioural Signal    ──► Feature mathematical derivation (CV, active days, on-time ratio).
+7. Assessment Impact     ──► Dimensional score contribution & score weight calculation.
 ```
 
-An agent should have one clear responsibility.
+---
 
-## 5. Proposed agents
+## 4. Document Integrity & Guardrails Layer
 
-### Document Classification Agent
+To prevent fraudulent tampering, redundant submissions, or extraction anomalies:
 
-Question:
+1. **Cryptographic Identity:**
+   - Every uploaded evidence document receives a deterministic SHA-256 hash.
+   - Identical document content uploaded under different filenames is detected and flagged.
+2. **Transaction-Level Deduplication:**
+   - Detects duplicate transaction timestamps, amounts, and counterparties across statements to eliminate double-counting.
+3. **Cross-Source Contradiction Detection:**
+   - Evaluates variance between declared profile attributes and observed transaction realities (e.g. $>30\%$ income variance triggers `REVIEW_REQUIRED`).
+4. **Policy Guardrails:**
+   - When significant discrepancies or duplicate evidence are detected, the system generates formal `ContradictionFinding` records and elevates the applicant to an Underwriting Policy Review Alert.
 
-> What kind of evidence is this?
+---
 
-Output:
-
-```json
-{
-  "document_type": "utility_bill",
-  "provider": "electricity",
-  "period": "2026-01",
-  "confidence": 0.97
-}
-```
-
-### Evidence Extraction Agent
-
-Question:
-
-> What structured facts are present in this evidence?
-
-It should return fields, source references and extraction confidence.
-
-### UPI Analysis Agent
-
-Analyzes:
-
-- inflows
-- outflows
-- transaction frequency
-- active days
-- recurring payments
-- volatility
-- trends
-
-### GST Analysis Agent
-
-Analyzes:
-
-- reported turnover
-- turnover trend
-- filing consistency
-- tax-related fields
-- business activity patterns
-
-### Gig/Work Earnings Agent
-
-Analyzes:
-
-- monthly earnings
-- active days
-- trips/jobs where present
-- earnings per active day
-- continuity
-- volatility
-
-### Evidence Reconciliation Agent
-
-Cross-checks multiple sources.
-
-Examples:
+## 5. Technology Stack & Directory Organization
 
 ```text
-GST turnover ↔ business transaction activity
-Gig earnings ↔ transaction inflows
-Utility bill dates ↔ payment records
-Duplicate/inconsistent records
+alternative-credit-engine/
+├── apps/
+│   ├── api/                     # High-performance Go 1.23 backend
+│   │   ├── cmd/server/          # HTTP server bootstrap
+│   │   └── pkg/
+│   │       ├── ai/              # Gemini / n8n integration clients
+│   │       ├── calculator/      # Deterministic scoring, feature math & summary generation
+│   │       ├── domain/          # Strongly-typed models (AssessmentProfile, Evidence, etc.)
+│   │       ├── extractor/       # Parsers for UPI, Utility, Gig Earnings, GST
+│   │       ├── handler/         # REST endpoints (/api/assess, /api/what-if, etc.)
+│   │       ├── service/         # Assessment orchestration & trace builder
+│   │       └── validator/       # Integrity hashing, validation rules & deduplication
+│   └── web/                     # Next.js 15 (React 19, TypeScript, Tailwind CSS)
+│       ├── app/                 # App Router page routes & layout
+│       ├── components/          # Reusable UI modules (AssessmentView, IngestionHub, etc.)
+│       └── lib/                 # Client API layer, type definitions, scenario datasets
+├── workflows/n8n/               # n8n workflow definitions for Gemini orchestration
+└── docs/                        # Complete system, scoring, and UI documentation
 ```
 
-It produces findings and confidence, not lending decisions.
+---
 
-## 6. Tools
+## 6. Strict Presentation Hierarchy
 
-Agents should use deterministic tools for calculations.
+To prevent AI prototype clutter, the customer-facing assessment strictly follows this hierarchy:
 
-Examples:
+$$\text{SCORE} \longrightarrow \text{CONFIDENCE + COVERAGE} \longrightarrow \text{KEY INDICATORS} \longrightarrow \text{DECLARED VS OBSERVED} \longrightarrow \text{BEHAVIOURAL DIMENSIONS} \longrightarrow \text{EVIDENCE SOURCES} \longrightarrow \text{ASSESSMENT SUMMARY} \longrightarrow \text{DETAILED PROVENANCE} \longrightarrow \text{WHAT-IF SIMULATION}$$
 
-```text
-calculate_monthly_inflow()
-calculate_monthly_outflow()
-calculate_volatility()
-calculate_payment_delay()
-detect_recurring_payments()
-detect_duplicate_transactions()
-calculate_income_continuity()
-```
+- **Metric Cards:** Display structured numbers and state badges only. No repetitive explanatory paragraphs.
+- **Underwriting Assessment Summary:** A single dedicated narrative section presenting grounded, factual synthesis.
 
-The model can decide which tool is useful, while the tool performs the arithmetic.
-
-## 7. n8n
-
-n8n coordinates the workflow.
-
-Example:
-
-```text
-Webhook
- ↓
-Store evidence
- ↓
-Document classification
- ↓
-Route by evidence type
- ↓
-Extraction
- ↓
-Validation
- ↓
-Normalization
- ↓
-Feature service
- ↓
-Evidence reconciliation
- ↓
-Risk model
- ↓
-Explanation
- ↓
-Persist result
-```
-
-n8n is not the credit model and does not replace Gemini.
-
-## 8. AI provider abstraction
-
-Do not hard-code the application around one provider.
-
-Use an internal interface such as:
-
-```go
-type DocumentAI interface {
-    Classify(ctx context.Context, input DocumentInput) (Classification, error)
-    Extract(ctx context.Context, input DocumentInput) (Evidence, error)
-    Analyze(ctx context.Context, input AnalysisContext) (Analysis, error)
-}
-```
-
-Gemini is the initial provider.
-
-The interface allows future comparison or replacement without rewriting the product.
-
-## 9. Storage
-
-Original evidence:
-
-```text
-Object storage
-```
-
-Structured information:
-
-```text
-PostgreSQL
-```
-
-Store provenance:
-
-```text
-source
-document_id
-page/row/reference
-extracted_value
-confidence
-timestamp
-```
-
-Every important score reason should be traceable.
-
-## 10. Production evolution
-
-Prototype:
-
-```text
-Next.js + Go + n8n + Gemini + Python scoring service + PostgreSQL
-```
-
-Production can later evolve toward:
-
-```text
-Next.js
-→ Go services
-→ durable queue
-→ workers
-→ AI provider
-→ feature platform
-→ production risk model
-→ decision engine
-```
-
-Kubernetes, Kafka and complex workflow infrastructure are not required for the prototype.

@@ -1,249 +1,98 @@
-# Product Screens
+# Product Screens & UI Architecture
 
-## Screen 1 — Entry
+## 1. Customer Assessment Journey Flow
 
-```text
-BUILD YOUR FINANCIAL PROFILE
-
-Share evidence that can help us assess your financial reliability.
-
-[ + Add financial evidence ]
-[ + Connect a data source ]
-
-PDF • CSV • Excel • Image
-
-You don't need to provide everything.
-```
-
-Purpose:
-- explain the product
-- avoid segment selection
-- communicate optional evidence
-
-## Screen 2 — Consent
+The user journey consists of four sequential, focused steps:
 
 ```text
-YOUR DATA, YOUR CHOICE
-
-We will use the selected financial evidence
-to assess financial behaviour and generate
-an explainable risk profile.
-
-[ What we'll use ]
-[ Why we need it ]
-[ How long it is used ]
-
-[ Continue ]
+Step 1: Declared Profile Form
+   ↓
+Step 2: Evidence Hub & Ingestion
+   ↓
+Step 3: Real-Time Ingestion Pipeline
+   ↓
+Step 4: Alternative Credit Profile & Underwriting Assessment
 ```
 
-Include explicit consent controls.
+---
 
-## Screen 3 — Evidence Hub
+## 2. Screen Specifications
+
+### Step 1: Declared Context Form (`ProfileSetup.tsx`)
+- **Header:** Progress indicator (`Step 1 of 3 — Structured Financial Context`) and quick-fill scenario loader.
+- **Section 1 (Personal Details):** Full Name, Age, City, PIN Code.
+- **Section 2 (Work & Income):** Segment badges (Gig, Self-Employed, Salaried, Merchant, Informal), Approx Monthly Income, Primary Channel (UPI, Bank Transfer, Cash).
+- **Section 3 (Household Context):** Approx Monthly Living Expenses, Number of Dependents.
+
+### Step 2: Evidence Hub & Upload (`EvidenceHub.tsx`)
+- **Evidence Dropzone:** Drag-and-drop support for PDF, CSV, Excel, Images.
+- **Pre-loaded Evidence Records:** Status cards for uploaded statements (UPI, Gig Work, Electricity, Telecom).
+- **Evidence Card Details:** Provider tag, record count, date window, extraction confidence, and document identity tags.
+
+### Step 3: Ingestion Pipeline View (`PipelineProgress.tsx`)
+- **Live Pipeline Stages:**
+  1. Ingesting & Fingerprinting Document (SHA-256)
+  2. Document Classification & Type Detection
+  3. Structured Fact Extraction (Gemini / OCR)
+  4. Data Validation & Integrity Checking
+  5. Deterministic Feature & Dimension Calculation
+  6. Final Credit Profile & Explainability Generation
+
+### Step 4: Alternative Credit Profile (`AssessmentView.tsx`)
+
+The assessment screen follows a strict, disciplined fintech hierarchy:
 
 ```text
-YOUR EVIDENCE
+1. Scenario Bar & Applicant Context
+   - Reference ID, Assessment Date, Declared Income & Household Summary
+   - Demo Switcher (Rajesh Kumar / Priya Sundaram / Amit Verma)
 
-UPI / Bank transactions     ✓
-GST                        —
-Gig earnings               ✓
-Utility payments           ✓
-Telecom                    —
-E-commerce                 —
-Vehicle evidence           —
+2. Underwriting Policy Review Banner (Conditional)
+   - Rendered only when policy discrepancies or anomalies exceed automated tolerances.
 
-[ + Add evidence ]
+3. Main Score & Reliability
+   - Alternative Credit Score (/900) and Risk Band Badge (Low Risk / Review Required)
+   - Confidence Gauge (0–100%) and Evidence Coverage Gauge (0–100%)
+   - Evidence Sources Breakdown Grid with status badges and "Verifies..." purpose captions.
+
+4. Key Underwriting Indicators Grid
+   - 6 compact factual metrics: Cash-Flow Ratio, Inflow Volatility CV, Income Variance, On-Time Payment Rate, Active Observation Span, Evidence Reliability.
+
+5. Financial Reconciliation (Declared vs Observed)
+   - 4 Cards: Monthly Inflow, Monthly Expenses, Primary Channel, Active Months.
+   - Structured comparison displaying Declared, Observed, Variance %, and Reconciliation State Badges (CONSISTENT, MINOR_VARIANCE, SIGNIFICANT_VARIANCE). No repetitive explanatory paragraphs.
+
+6. Five Behavioural Dimensions
+   - Cash-Flow Stability (0–100)
+   - Income Consistency (0–100)
+   - Payment Discipline (0–100)
+   - Activity Continuity (0–100)
+   - Financial Resilience (0–100)
+   - Each card displays score / 100, visual progress bar, and 2 deterministic telemetry rows.
+
+7. Evidence Discrepancies (Conditional)
+   - Highlights contradiction findings, duplicate files, or timestamp overlaps when detected.
+
+8. Underwriting Assessment Summary (Single Unified AI Synthesis)
+   - Dedicated narrative card presenting grounded factual synthesis.
+   - Key Strengths list (positive factors) and Watch Areas list (coverage observations).
+
+9. Evidence Provenance & Verification Details (Progressive Disclosure)
+   - Collapsible panel with 7-stage dimensional traces and SHA-256 cryptographic document hashes.
+
+10. What-If Scenario Simulation
+    - Non-mutating interactive sliders projecting score improvement for increased deposit regularity or on-time bill payment.
 ```
 
-Do not make missing categories look like failures.
+---
 
-## Screen 4 — Add Evidence
+## 3. Visual & Design System Principles
 
-```text
-ADD FINANCIAL EVIDENCE
-
-[ Upload file ]
-[ Connect source ]
-
-Supported:
-PDF • CSV • Excel • Image
-
-We automatically identify the evidence type.
-```
-
-## Screen 5 — Processing
-
-Show meaningful processing stages:
-
-```text
-Processing evidence
-
-✓ File received
-✓ Document identified
-✓ Information extracted
-● Validating records
-○ Calculating financial behaviour
-○ Building profile
-```
-
-Avoid fake AI animations.
-
-## Screen 6 — Detected Evidence
-
-```text
-EVIDENCE DETECTED
-
-✓ UPI transaction data
-  Jan–Jun 2026
-  1,284 records
-  High data quality
-
-✓ Gig earnings statement
-  Jan–Jun 2026
-  6 monthly records
-  High data quality
-
-✓ Electricity payment records
-  Feb–Jun 2026
-  5 records
-  Medium data quality
-```
-
-Allow the customer to inspect/remove evidence where appropriate.
-
-## Screen 7 — Profile
-
-```text
-ALTERNATIVE CREDIT PROFILE
-
-742 / 900
-LOW–MODERATE RISK
-
-Confidence      84%
-Data coverage   71%
-
-Cash-flow stability       82
-Income consistency        76
-Payment discipline        91
-Activity continuity       73
-Financial resilience      79
-```
-
-## Screen 8 — Why this score?
-
-```text
-WHY THIS PROFILE?
-
-+ Consistent monthly inflows
-+ Strong payment regularity
-+ Sustained work activity
-- Moderate income volatility
-
-[ View supporting evidence ]
-```
-
-Every reason should be traceable.
-
-## Screen 9 — Evidence used
-
-```text
-EVIDENCE USED
-
-UPI transactions
-Jan–Jun 2026
-1,284 records
-
-Gig earnings
-Jan–Jun 2026
-6 statements
-
-Utility payments
-Feb–Jun 2026
-5 records
-```
-
-## Screen 10 — Explainability detail
-
-Example:
-
-```text
-CONSISTENT MONTHLY INFLOWS
-
-Observed:
-₹71,200 → ₹76,400 → ₹81,900 → ₹79,300
-
-Feature:
-Low monthly inflow volatility
-
-Evidence:
-UPI/bank transaction records
-Jan–Apr 2026
-```
-
-## Screen 11 — Review / warnings
-
-```text
-VALIDATION
-
-✓ No major duplicate pattern detected
-✓ Sources cover multiple months
-⚠ One utility record has low image quality
-
-[ Review ]
-```
-
-## Screen 12 — Optional what-if
-
-```text
-WHAT-IF
-
-Improve income stability
-
-Current:
-742
-
-Scenario:
-10% lower monthly volatility
-
-Estimated change:
-+X points
-
-This is a scenario, not an approval guarantee.
-```
-
-## Design system
-
-The visual language should be inspired by TVS Credit's public brand direction:
-
-- white/light surfaces
-- blue for trust/navigation
-- green for primary actions and positive states
-- subtle borders
-- moderate corner radius
-- clear financial-product typography
-- restrained animation
-
-Avoid:
-
-- neon gradients
-- crypto/gaming aesthetics
-- excessive glassmorphism
-- generic "AI robot" visuals
-- dark futuristic dashboards
-
-Prototype colour approximations:
-
-```css
---tvs-blue: #1F4E8C;
---tvs-green: #0B9348;
---tvs-green-dark: #08783B;
---tvs-blue-dark: #173D70;
---surface: #FFFFFF;
---surface-soft: #F7F9F8;
---surface-muted: #F1F4F3;
---text-primary: #222222;
---text-secondary: #5F6368;
---text-muted: #858585;
---border: #DDE3E0;
-```
-
-These are prototype design approximations, not claims about official TVS hex specifications.
+- **Fintech Restraint:** Avoid gratuitous AI badges (`INFO`, `WATCH`, category pills, internal codes). Let numbers, state badges, and verified facts speak for themselves.
+- **Color Discipline:**
+  - Dark surfaces: `#14171A`, `#171A1D`, `#1D2125`
+  - Subtle borders: `#2B3035`
+  - Positive highlights: Emerald/Green (`#16A05A`, `#4ADE80`, `#132E20`)
+  - Informational accents: Steel Blue (`#3D78C2`, `#7AB3EF`, `#1E2C3D`)
+  - Warning/Attention: Amber/Yellow (`#D89A24`, `#FBBF24`, `#332511`)
+  - Discrepancy/Alert: Crimson/Rose (`#F87171`, `#381818`)

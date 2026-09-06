@@ -1,26 +1,32 @@
 # Scoring & Explainability
 
-## 1. Core separation
+## 1. Core Architectural Separation
+
+$$\textbf{DETERMINISTIC DATA} \longrightarrow \textbf{METRICS / SCORES} \longrightarrow \textbf{VISUALIZATION} \longrightarrow \textbf{ONE FINAL ASSESSMENT SUMMARY}$$
 
 ```text
-Evidence
+Evidence Documents
  ↓
-Normalized records
+Normalized Records (CanonicalEvidence)
  ↓
-Financial features
+Deterministic Features (DerivedFeatures)
  ↓
-Risk model
+Five Behavioural Dimensions (0–100)
  ↓
-Risk score
+Credit Risk Score (300–900)
  ↓
-Decision policy
+Financial Reconciliation & Guardrails
+ ↓
+Grounded Underwriting Assessment Summary
 ```
 
-The AI agent does not directly generate the production credit score.
+The AI agent does **not** invent or directly calculate the credit score. All calculations are executed in deterministic Go code.
+
+---
 
 ## 2. Five Behavioural Dimensions ($0–100$ Scale)
 
-The prototype deterministically computes five human-readable behavioral dimensions:
+The engine deterministically computes five human-readable behavioral dimensions:
 
 ### 1. Cash-flow Stability ($C \in [0, 100]$) — Weight: 30%
 Measures consistency and predictability of observed inflows/outflows.
@@ -63,7 +69,9 @@ Measures capacity to absorb normal expense shocks and financial cushion.
 - **Recurring Inflow Bonus:** Up to $+20.0$ pts for recurring source diversification.
 - **Formula:** $R = \text{clamp}(\text{RatioPts} + \text{BufferPts} + \text{RecurringBonus}, \ 10.0, \ 98.0)$.
 
-## 3. Score & Transparent Prototype Scoring Framework
+---
+
+## 3. Credit Score Calculation ($300–900$ Scale)
 
 ### Prototype Dimension Weights
 - **Cash-flow Stability (C):** 30% (`0.30`)
@@ -72,23 +80,8 @@ Measures capacity to absorb normal expense shocks and financial cushion.
 - **Activity Continuity (A):** 15% (`0.15`)
 - **Financial Resilience (R):** 15% (`0.15`)
 
-Each dimension is scored deterministically on a **0–100 scale**.
-
-### Composite Behavioral Score ($B$)
-$$B = 0.30C + 0.20I + 0.20P + 0.15A + 0.15R$$
-
-### 300–900 Credit Profile Score Mapping
-$$\text{Score} = \text{round}(300 + 6 \times B)$$
-
-**Example Calculation:**
-- Cash-flow Stability ($C$) = 82
-- Income Consistency ($I$) = 70
-- Payment Discipline ($P$) = 88
-- Activity Continuity ($A$) = 75
-- Financial Resilience ($R$) = 62
-
-$$B = (82 \times 0.30) + (70 \times 0.20) + (88 \times 0.20) + (75 \times 0.15) + (62 \times 0.15) = 76.75$$
-$$\text{Score} = \text{round}(300 + (6 \times 76.75)) = 761$$
+$$\text{Composite Behavioral Score } (B) = 0.30C + 0.20I + 0.20P + 0.15A + 0.15R$$
+$$\text{Alternative Credit Score} = \text{round}(300 + 6 \times B)$$
 
 ### Risk Bands
 - **750 – 900:** Low Risk
@@ -96,72 +89,51 @@ $$\text{Score} = \text{round}(300 + (6 \times 76.75)) = 761$$
 - **580 – 669:** Moderate Risk
 - **300 – 579:** Higher Risk
 
-> **IMPORTANT:** These weights and formulas represent a **transparent prototype scoring framework** for underwriting decision support. In production, this transparent framework can be replaced with a calibrated statistical/ML risk model trained on historical repayment outcomes.
+---
 
-## 4. Production Model Evolution
+## 4. Confidence & Data Coverage Metrics
 
-With appropriate historical repayment-labelled data, candidate models include:
-- Logistic regression as an interpretable baseline
-- Gradient-boosted decision trees (XGBoost / LightGBM)
-- Calibrated probability-of-default (PD) models with Scorecard scaling
+### Confidence (0–100%)
+Measures evidence reliability and extraction fidelity without mutating the credit score:
+$$\text{Confidence} = \text{round}\Big(0.35 \cdot Q_{\text{source}} + 0.30 \cdot E_{\text{extraction}} + 0.20 \cdot V_{\text{validation}} + 0.15 \cdot C_{\text{cross}}\Big) \in [10\%, 100\%]$$
 
-## 5. Explainability & Grounded Reasons
+### Data Coverage (0–100%)
+Measures the dimensional breadth of ingested evidence:
+$$\text{Coverage} = 35\% \cdot \mathbb{I}(\text{UPI}) + 25\% \cdot \mathbb{I}(\text{Gig}) + 20\% \cdot \mathbb{I}(\text{Utility}) + 15\% \cdot \mathbb{I}(\text{GST}) + 5\% \cdot \mathbb{I}(\text{Telecom})$$
 
-Every reason shown to a user or underwriter originates from measurable mathematical features with complete provenance.
+> **Missing Data Principle:** Missing evidence sources reduce Data Coverage and Confidence, but **never reduce the credit score**.
 
-Structure:
+---
+
+## 5. Financial Reconciliation Layer
+
+The engine compares self-declared profile attributes against observed transactional evidence across 4 dimensions:
+
+1. **Monthly Inflow / Income:** Variance evaluated between declared monthly income and verified statement deposits.
+2. **Monthly Outflows / Expenses:** Evaluates declared household costs against observed debit totals.
+3. **Primary Income Channel:** Validates declared payment rails (UPI, Bank Transfer) against transaction descriptions.
+4. **Activity History / Continuity:** Validates active working history across consecutive observation months.
+
+### Reconciliation State Badges
+- **`CONSISTENT`:** Variance $\le 15\%$, payment rails matching.
+- **`MINOR_VARIANCE`:** Variance $>15\%$ and $\le 30\%$, acceptable for informal workers.
+- **`SIGNIFICANT_VARIANCE`:** Variance $>30\%$, triggers underwriter attention.
+- **`PARTIALLY_OBSERVED`:** Evidence observed for partial cycles or single rails.
+
+---
+
+## 6. Grounded Underwriting Assessment Summary
+
+Rather than distributing unstructured AI prose across multiple UI cards, the engine synthesizes **ONE single Underwriting Assessment Summary** grounded strictly in verified numbers:
+
+- References average observed inflows, observation months, and variance percentage.
+- Summarizes utility bill fulfillment (on-time count, total cycles, average delay days).
+- Notes gig platform continuity and active working days per month.
+- Evaluates multi-source corroboration and flags policy recommendations (Standard Approval vs Manual Review).
+
 ```json
 {
-  "type": "positive",
-  "title": "Consistent Monthly Inflows",
-  "summary": "Observed low month-over-month inflow volatility (CV: 0.08) with an average of ₹31,450/month across 3 active months.",
-  "source_type": "upi",
-  "evidence_ref": "UPI Transaction Records",
-  "observed_value": "₹31,450 avg/mo (CV 0.08)",
-  "impact": "HIGH"
+  "assessment_summary": "Observed monthly cash inflows average ₹26467 across 3 active months (a 17.3% variance from declared ₹32000/mo). Utility payment discipline reflects 4 of 5 bills fulfilled on-time (80% on-time rate) with an average delay of 0.4 days. Platform work continuity is corroborated over 3 consecutive months averaging 26 active days/mo. Multi-source corroboration across 3 independent evidence sources validates low behavioral risk and sound financial resilience."
 }
 ```
 
-## 6. Confidence Calculation (Independent of Score)
-
-Confidence measures how reliable and verifiable the evidence is. It **never modifies the credit score directly**.
-
-$$\text{Confidence} = \text{round}\Big(0.35 \cdot Q_{\text{source}} + 0.30 \cdot E_{\text{extraction}} + 0.20 \cdot V_{\text{validation}} + 0.15 \cdot C_{\text{cross}}\Big) \in [10\%, 100\%]$$
-
-- $Q_{\text{source}}$: Source Quality (Provider statement: 0.95, OCR: 0.75)
-- $E_{\text{extraction}}$: Extraction Confidence (CSV/Direct: 0.98, Clean PDF: 0.95, Image: 0.85)
-- $V_{\text{validation}}$: Validation Integrity (Passed: 1.0, Warning: 0.80, Failed: 0.40)
-- $C_{\text{cross}}$: Cross-source reconciliation (3+ sources: 0.98, 2 sources: 0.90, single: 0.80)
-
-## 7. Data Coverage (Independent of Score)
-
-Data coverage answers: *"How much relevant financial evidence was actually available?"*
-
-$$\text{Coverage} = 35\% \cdot \mathbb{I}(\text{UPI}) + 25\% \cdot \mathbb{I}(\text{Gig}) + 20\% \cdot \mathbb{I}(\text{Utility}) + 15\% \cdot \mathbb{I}(\text{GST}) + 5\% \cdot \mathbb{I}(\text{Telecom})$$
-
-## 8. Missing Data Principle
-
-**Missing data MUST NOT automatically reduce the credit score.**
-```text
-GST missing
-    ↓
-GST feature unavailable
-    ↓
-Data coverage remains lower (e.g., 80% instead of 100%)
-    ↓
-Confidence reflects observed sources
-    ↓
-Model assesses borrower fairly based on available observed evidence
-```
-
-## 9. Decision Policy & Underwriter Governance
-
-Decision policy remains decoupled from the risk model:
-```text
-Alternative Credit Score (300 - 900) + Confidence + Coverage
-                        ↓
-            TVS Decision Policy Engine
-       ├── Auto-Eligible (e.g., Score >= 750, Conf >= 80%, Cov >= 60%)
-       ├── Underwriter Manual Review
-       └── Outside Current Policy Limits
-```

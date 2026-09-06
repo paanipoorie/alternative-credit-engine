@@ -1,189 +1,93 @@
 # Data Sources & Financial Signals
 
-## Principle
+## 1. Evidence Prioritization Principle
 
-The case study names multiple alternative data categories. They should not all have equal weight.
+Alternative data signals are prioritized based on:
+1. **Predictive Financial Usefulness:** Direct measurement of cash inflows, working continuity, and obligation fulfillment.
+2. **Legitimate Availability:** Readily available via Account Aggregator, direct PDF/CSV exports, or bills without invasive surveillance.
+3. **Consent & Privacy:** Explicit borrower-controlled uploads without scraping or password collection.
+4. **Verifiability:** Grounded in provider records with cryptographic SHA-256 fingerprinting.
 
-Prioritize signals according to:
+> **Missing Data Principle:** Missing evidence sources reduce **Data Coverage** and **Confidence**, but **never reduce the credit score**.
 
-1. predictive usefulness
-2. legitimate availability
-3. consent complexity
-4. explainability
-5. data quality
+---
 
-Missing evidence should reduce **coverage**, not automatically reduce risk.
+## 2. Ingested Evidence Sources & Purpose
 
-## 1. UPI / transaction activity
+| Evidence Source | What It Measures | Secondary Underwriting Verification | Coverage Weight |
+|---|---|---|---|
+| **UPI / Bank** | Cash-flow regularity, deposit predictability, volatility CV | *Verifies cash-flow regularity* | 35% |
+| **Work Earnings** | Platform earnings continuity, active days per month | *Verifies income continuity* | 25% |
+| **Utility Bills** | On-time payment discipline, delinquency delay days | *Verifies payment discipline* | 20% |
+| **GST Returns** | Business filing consistency, turnover trends | *Verifies business activity* | 15% |
+| **Telecom** | Active recharge history, plan continuity | *Verifies recharge continuity* | 5% |
+| **Evidence Quality** | Date span density, cross-source consistency | *Verifies evidence reliability* | Baseline Gauge |
 
-### Raw evidence
+---
 
-- transaction ID
-- date/time
-- amount
-- debit/credit
-- payer/payee information where available
-- transaction status
-- transaction description/reference
+## 3. Detailed Source Mappings & Derived Features
 
-### Derived features
+### 1. UPI / Bank Transaction Records
+- **Raw Elements:** Transaction ID, Timestamp, Amount, Direction (`credit` / `debit`), Counterparty, Description, Status.
+- **Derived Features:**
+  - `total_inflow`, `total_outflow`, `net_cash_flow`
+  - `avg_monthly_inflow`, `avg_monthly_outflow`
+  - `inflow_volatility_cv` (Coefficient of Variation $\sigma / \mu$)
+  - `credit_debit_ratio` (Cash-flow multiplier)
+  - `active_days_count`, `active_days_ratio`, `total_transactions`
 
-- monthly inflow
-- monthly outflow
-- net cash flow
-- transaction frequency
-- active days
-- average transaction value
-- inflow volatility
-- recurring payment patterns
-- monthly trend
+### 2. Work / Gig Earnings Statements
+- **Raw Elements:** Payout Period, Gross Earnings, Net Payout, Active Days, Completed Jobs/Trips, Incentives.
+- **Derived Features:**
+  - `gig_total_earnings`, `gig_avg_monthly_earnings`
+  - `gig_earnings_volatility_cv`
+  - `gig_continuity_months`
+  - `gig_active_days_per_month`
+  - `gig_earnings_per_active_day`
 
-Important implementation note:
+### 3. Utility Payment Receipts & Statements
+- **Raw Elements:** Bill Period, Provider Name, Due Date, Payment Date, Bill Amount, Paid Amount, Days Late.
+- **Derived Features:**
+  - `utility_total_bills`
+  - `utility_on_time_count`, `utility_on_time_ratio`
+  - `utility_avg_delay_days`
 
-Do not assume a universal direct UPI-history API. For the prototype, support transaction CSV/PDF/bank-statement evidence. UPI activity may also appear in bank transaction data.
+### 4. GST Returns (GSTR-3B / GSTR-1)
+- **Raw Elements:** Return Period, Reported Turnover, Outward Taxable Supplies, Tax Liability.
+- **Derived Features:**
+  - Turnover growth trend, turnover volatility CV, quarterly filing regularity.
 
-## 2. GST
+### 5. Telecom Recharge Statements
+- **Raw Elements:** Recharge Date, Plan Value, Validity Period, Service Type.
+- **Derived Features:**
+  - Recharge frequency, average monthly telecom spend, continuity gaps.
 
-### Raw evidence
+---
 
-- filing period
-- outward supplies/turnover fields
-- tax liability
-- relevant return status
-- credit/debit notes where available
+## 4. Canonical Evidence Domain Schema
 
-### Derived features
-
-- reported turnover
-- turnover growth
-- turnover volatility
-- filing consistency
-- seasonality
-- business activity trend
-
-GST is especially useful for merchants and formalized small businesses.
-
-GST activity alone is not repayment capacity.
-
-## 3. Gig/work earnings
-
-Provider-generated earnings statements are preferred.
-
-### Raw evidence
-
-- earnings period
-- total earnings
-- jobs/trips where available
-- adjustments
-- active work information where present
-
-### Derived features
-
-- monthly earnings
-- earnings per active day
-- work continuity
-- earnings volatility
-- trend
-- active-day consistency
-
-Do not depend on continuous GPS tracking.
-
-## 4. Utility payments
-
-Possible evidence:
-
-- electricity/water/other utility bill
-- payment receipt
-- provider payment history
-- screenshot where necessary
-
-Derived:
-
-- bill amount
-- due date
-- payment date
-- late frequency
-- average delay
-- missed payments
-- payment consistency
-
-There is no universal utility-history format, so upload/provider-generated records are the prototype-friendly route.
-
-## 5. Telecom recharge
-
-Possible evidence:
-
-- recharge history
-- recharge statement
-- provider-generated record
-
-Derived:
-
-- recharge frequency
-- average recharge
-- recharge gaps
-- plan continuity
-
-Use this as a **secondary signal**. Telecom behaviour should not dominate a credit decision.
-
-## 6. E-commerce
-
-Potential evidence:
-
-- order date
-- amount
-- order status
-- return/cancellation information
-
-This should remain optional and secondary.
-
-Do not infer creditworthiness from what products a customer buys.
-
-Do not require customers to hand over shopping passwords or credentials.
-
-## 7. Mobility / vehicle evidence
-
-Potential evidence:
-
-- vehicle finance/EMI records
-- fuel transactions
-- service/maintenance records
-- insurance
-- telematics where legitimately available
-
-For gig workers, work-platform earnings/activity is generally more practical than continuous vehicle tracking.
-
-Avoid making GPS surveillance a core feature.
-
-## 8. Signal priority
-
-| Signal | Prototype priority | Main reason |
-|---|---:|---|
-| Bank/transaction cash flow | Very high | Strong financial-behaviour evidence |
-| UPI/transaction trends | Very high | Useful behavioural detail where available |
-| GST | Very high for merchants | Business activity evidence |
-| Gig earnings | Very high for gig workers | Direct earning continuity |
-| Utility | Medium | Payment discipline |
-| Telecom | Low-medium | Weak/indirect signal |
-| Mobility/vehicle | Medium/niche | Useful in specific contexts |
-| E-commerce | Low | Harder to obtain and explain |
-
-## 9. Canonical evidence model
-
-All sources should be normalized into a common representation.
+All heterogeneous evidence files are normalized into standard domain structs in Go:
 
 ```json
 {
-  "customer_id": "demo-001",
+  "id": "ev-001",
+  "customer_id": "cust-rajesh",
   "source_type": "upi",
-  "source_provider": "example_provider",
+  "source_provider": "bank_statement",
   "period_start": "2026-01-01",
   "period_end": "2026-03-31",
-  "records": [],
-  "source_quality": 0.94,
-  "extraction_confidence": 0.97,
-  "provenance": []
+  "source_quality": 0.95,
+  "extraction_confidence": 0.98,
+  "provenance": {
+    "evidence_id": "ev-001",
+    "document_name": "bank_statement_q1.csv",
+    "document_format": "csv",
+    "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "record_count": 39,
+    "extraction_confidence": 0.98,
+    "validation_status": "PASSED",
+    "ingested_at": "2026-09-06T12:00:00Z"
+  }
 }
 ```
 
-The feature engine should consume this normalized representation rather than provider-specific formats.
