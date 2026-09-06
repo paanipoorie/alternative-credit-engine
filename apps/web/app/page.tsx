@@ -141,7 +141,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9F8] text-[#222222]">
+    <div className="min-h-screen bg-[#0F1113] text-[#F3F5F4]">
       {/* Header Bar */}
       <Header
         onReset={handleReset}

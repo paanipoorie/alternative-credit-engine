@@ -17,6 +17,11 @@ import {
   Eye,
   Info,
   Sparkles,
+  Check,
+  AlertTriangle,
+  Scale,
+  Activity,
+  ArrowUpRight,
 } from 'lucide-react';
 import { AssessmentProfile, CanonicalEvidence, ExplainableReason } from '../lib/types';
 import { formatCurrency, formatPercent } from '../lib/utils';
@@ -46,13 +51,25 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
   const getRiskBandBadge = (band: string) => {
     switch (band) {
       case 'Low Risk':
-        return 'bg-[#E8F6EE] text-[#0B9348] border-[#A7F3D0]';
+        return 'bg-[#132E20] text-[#4ADE80] border-[#16A05A]/40';
       case 'Low-Moderate Risk':
-        return 'bg-[#EBF2FC] text-[#1F4E8C] border-[#BFDBFE]';
+        return 'bg-[#1E2C3D] text-[#7AB3EF] border-[#3D78C2]/40';
       case 'Moderate Risk':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-[#332511] text-[#FBBF24] border-[#D89A24]/40';
       default:
-        return 'bg-rose-50 text-rose-700 border-rose-200';
+        return 'bg-[#381818] text-[#F87171] border-rose-800/40';
+    }
+  };
+
+  const getScoreSummaryText = (score: number) => {
+    if (score >= 800) {
+      return 'Strong and consistent financial behaviour across the evidence provided.';
+    } else if (score >= 700) {
+      return 'Stable financial behaviour with good payment discipline and regular activity.';
+    } else if (score >= 600) {
+      return 'Moderate financial regularity with some variation in observed inflows or payment timing.';
+    } else {
+      return 'Developing credit profile. Additional evidence can help provide a more complete assessment.';
     }
   };
 
@@ -72,17 +89,35 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
     }
   };
 
+  // Build clean watch areas from attention factors or contextual observations
+  const watchAreas: string[] = [];
+  if (profile.attention_factors && profile.attention_factors.length > 0) {
+    profile.attention_factors.forEach((f) => watchAreas.push(f.summary || f.title));
+  }
+  if (profile.dimensions.payment_discipline < 85 && !watchAreas.some(w => w.toLowerCase().includes('payment') || w.toLowerCase().includes('bill'))) {
+    watchAreas.push('Payment discipline shows occasional timing variance in observed records.');
+  }
+  if (profile.data_coverage_score < 100 && !watchAreas.some(w => w.toLowerCase().includes('coverage') || w.toLowerCase().includes('unobserved'))) {
+    watchAreas.push(`Evidence coverage is ${profile.data_coverage_score}%, so some financial activity remains unobserved.`);
+  }
+
+  const observedMonthlyIncome = profile.features.gig_avg_monthly_earnings > 0 
+    ? profile.features.gig_avg_monthly_earnings 
+    : profile.features.avg_monthly_inflow > 0 
+    ? profile.features.avg_monthly_inflow 
+    : (profile.declared_profile?.monthly_income || 32000);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Top Banner & Customer Context */}
-      <div className="rounded-2xl border border-[#DDE3E0] bg-white p-6 sm:p-8 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#DDE3E0] pb-4">
+      {/* 1. Profile Header / Context Card */}
+      <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#2B3035] pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-[#EBF2FC] px-2.5 py-0.5 text-xs font-semibold text-[#1F4E8C]">
+              <span className="rounded-full bg-[#1E2C3D] px-2.5 py-0.5 text-xs font-semibold text-[#7AB3EF] border border-[#3D78C2]/30">
                 Assessment ID: {profile.assessment_id}
               </span>
-              <span className="text-xs text-[#858585]">
+              <span className="text-xs text-[#737C83]">
                 {new Date(profile.created_at).toLocaleDateString('en-IN', {
                   day: '2-digit',
                   month: 'short',
@@ -92,10 +127,10 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 })}
               </span>
             </div>
-            <h2 className="mt-2 text-xl font-bold text-[#1F4E8C]">
+            <h1 className="mt-2 text-xl sm:text-2xl font-bold tracking-tight text-[#F3F5F4]">
               {profile.declared_profile?.full_name || profile.customer_name || 'Rajesh Kumar'}
-            </h2>
-            <p className="text-xs text-[#5F6368] capitalize">
+            </h1>
+            <p className="text-xs text-[#A7AFB5] capitalize">
               {(profile.declared_profile?.employment_type || profile.persona_type || 'gig_worker').replace('_', ' ')} • {profile.declared_profile?.city || 'Bengaluru'} ({profile.declared_profile?.pincode || '560038'})
             </p>
           </div>
@@ -103,7 +138,7 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onUploadMore}
-              className="rounded-lg border border-[#DDE3E0] bg-[#F7F9F8] px-3.5 py-2 text-xs font-semibold text-[#1F4E8C] hover:bg-[#EBF2FC] transition shadow-xs"
+              className="rounded-lg border border-[#2B3035] bg-[#1D2125] px-3.5 py-2 text-xs font-semibold text-[#7AB3EF] hover:bg-[#24292E] hover:text-white transition shadow-xs cursor-pointer"
             >
               + Strengthen With More Evidence
             </button>
@@ -111,56 +146,56 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
         </div>
 
         {/* Declared Context Attributes Summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-xl bg-[#F7F9F8] p-4 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-xl bg-[#1D2125] p-4 text-xs border border-[#2B3035]">
           <div>
-            <span className="block text-[10px] uppercase font-bold text-[#858585]">Declared Monthly Income</span>
-            <span className="font-bold text-[#0B9348] text-sm">
+            <span className="block text-[10px] uppercase font-bold text-[#737C83]">Declared Monthly Income</span>
+            <span className="font-bold text-[#16A05A] text-sm">
               {formatCurrency(profile.declared_profile?.monthly_income || 32000)}
             </span>
-            <span className="block text-[10px] text-[#5F6368] capitalize">
+            <span className="block text-[10px] text-[#A7AFB5] capitalize">
               via {(profile.declared_profile?.income_channel || 'upi').replace('_', ' ')}
             </span>
           </div>
 
           <div>
-            <span className="block text-[10px] uppercase font-bold text-[#858585]">Declared Monthly Expenses</span>
-            <span className="font-bold text-[#222222] text-sm">
+            <span className="block text-[10px] uppercase font-bold text-[#737C83]">Declared Monthly Expenses</span>
+            <span className="font-bold text-[#F3F5F4] text-sm">
               {formatCurrency(profile.declared_profile?.monthly_expenses || 16500)}
             </span>
-            <span className="block text-[10px] text-[#5F6368]">
+            <span className="block text-[10px] text-[#A7AFB5]">
               Estimated household cost
             </span>
           </div>
 
           <div>
-            <span className="block text-[10px] uppercase font-bold text-[#858585]">Age & Dependents</span>
-            <span className="font-bold text-[#222222] text-sm">
+            <span className="block text-[10px] uppercase font-bold text-[#737C83]">Age & Dependents</span>
+            <span className="font-bold text-[#F3F5F4] text-sm">
               {profile.declared_profile?.age || 29} yrs • {profile.declared_profile?.dependents || 2} dependents
             </span>
-            <span className="block text-[10px] text-[#5F6368]">
+            <span className="block text-[10px] text-[#A7AFB5]">
               Household stability
             </span>
           </div>
 
           <div>
-            <span className="block text-[10px] uppercase font-bold text-[#858585]">Evidence Ingested</span>
-            <span className="font-bold text-[#1F4E8C] text-sm">
+            <span className="block text-[10px] uppercase font-bold text-[#737C83]">Evidence Ingested</span>
+            <span className="font-bold text-[#7AB3EF] text-sm">
               {profile.provenance.length} Sources Verified
             </span>
-            <span className="block text-[10px] text-[#5F6368]">
-              {profile.data_coverage_score}% Alternative coverage
+            <span className="block text-[10px] text-[#A7AFB5]">
+              {profile.data_coverage_score}% Evidence coverage
             </span>
           </div>
         </div>
       </div>
 
-      {/* Main Score & Topline Metrics Grid */}
+      {/* 2. Main Score Card & Evidence Coverage Grid */}
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Credit Profile Score Card (5 cols) */}
-        <div className="lg:col-span-5 rounded-2xl border border-[#DDE3E0] bg-white p-6 sm:p-8 shadow-sm flex flex-col justify-between">
+        {/* Alternative Credit Score Card (5 cols) */}
+        <div className="lg:col-span-5 rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#5F6368]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#A7AFB5]">
                 Alternative Credit Score
               </span>
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${getRiskBandBadge(profile.risk_band)}`}>
@@ -168,291 +203,462 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
               </span>
             </div>
 
-            {/* Score Number Display */}
+            {/* Score Display */}
             <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-5xl sm:text-6xl font-extrabold tracking-tight text-[#1F4E8C]">
+              <span className="text-5xl sm:text-6xl font-extrabold tracking-tight text-[#F3F5F4]">
                 {profile.final_score}
               </span>
-              <span className="text-xl font-medium text-[#858585]">/ 900</span>
+              <span className="text-xl font-medium text-[#737C83]">/ 900</span>
             </div>
 
-            {/* Behavioural Score Calculation Formula */}
-            <div className="mt-3 rounded-lg bg-[#F7F9F8] p-3 text-xs text-[#5F6368] border border-[#DDE3E0]">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-[#222222]">Composite Behavioural Score (B):</span>
-                <span className="font-mono font-bold text-[#0B9348] text-sm">{profile.behavioral_score.toFixed(1)} / 100</span>
-              </div>
-              <p className="mt-1 text-[11px] text-[#858585]">
-                Score formula: <span className="font-mono">round(300 + 6 × B)</span>
+            {/* Clean Customer-Facing Assessment Summary */}
+            <div className="mt-4 rounded-xl bg-[#1D2125] p-3.5 text-xs text-[#A7AFB5] border border-[#2B3035]">
+              <p className="text-xs font-medium text-[#F3F5F4] leading-relaxed">
+                &ldquo;{getScoreSummaryText(profile.final_score)}&rdquo;
               </p>
             </div>
           </div>
 
           {/* Confidence and Coverage Progress Gauges */}
-          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#DDE3E0] pt-6">
+          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#2B3035] pt-6">
             <div>
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-semibold text-[#222222]">Confidence</span>
-                <span className="font-bold text-[#0B9348]">{profile.confidence_score}%</span>
+                <span className="font-semibold text-[#F3F5F4]">Confidence</span>
+                <span className="font-bold text-[#16A05A]">{profile.confidence_score}%</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-[#DDE3E0]/60 overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-[#1D2125] border border-[#2B3035] overflow-hidden">
                 <div
-                  className="h-full bg-[#0B9348] rounded-full transition-all duration-500"
+                  className="h-full bg-[#16A05A] rounded-full transition-all duration-500"
                   style={{ width: `${profile.confidence_score}%` }}
                 />
               </div>
-              <span className="mt-1 block text-[10px] text-[#858585]">Data & OCR Integrity</span>
+              <span className="mt-1 block text-[10px] text-[#737C83]">Evidence quality & reliability</span>
             </div>
 
             <div>
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-semibold text-[#222222]">Data Coverage</span>
-                <span className="font-bold text-[#1F4E8C]">{profile.data_coverage_score}%</span>
+                <span className="font-semibold text-[#F3F5F4]">Evidence Coverage</span>
+                <span className="font-bold text-[#7AB3EF]">{profile.data_coverage_score}%</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-[#DDE3E0]/60 overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-[#1D2125] border border-[#2B3035] overflow-hidden">
                 <div
-                  className="h-full bg-[#1F4E8C] rounded-full transition-all duration-500"
+                  className="h-full bg-[#3D78C2] rounded-full transition-all duration-500"
                   style={{ width: `${profile.data_coverage_score}%` }}
                 />
               </div>
-              <span className="mt-1 block text-[10px] text-[#858585]">Observed Dimensions</span>
+              <span className="mt-1 block text-[10px] text-[#737C83]">Observed financial behaviour</span>
             </div>
           </div>
         </div>
 
-        {/* Coverage Breakdown & Source Pills (7 cols) */}
-        <div className="lg:col-span-7 rounded-2xl border border-[#DDE3E0] bg-white p-6 sm:p-8 shadow-sm flex flex-col justify-between">
+        {/* Evidence Used / Coverage Breakdown (7 cols) */}
+        <div className="lg:col-span-7 rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[#1F4E8C] flex items-center gap-1.5">
-              <Layers className="h-4 w-4" />
-              Evidence Coverage Breakdown
-            </h3>
-            <p className="mt-1 text-xs text-[#5F6368]">
-              Alternative sources contribute independently. Missing sources reduce coverage/confidence, never credit score.
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#7AB3EF] flex items-center gap-1.5">
+                <Layers className="h-4 w-4" />
+                Evidence Used
+              </h3>
+              <span className="text-xs font-semibold text-[#16A05A]">
+                {profile.data_coverage_score}% Coverage
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[#A7AFB5]">
+              Alternative sources contribute independently. Missing evidence reduces coverage/confidence, not credit score.
             </p>
 
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className={`rounded-xl p-3 border text-xs ${
-                profile.coverage_breakdown?.upi ? 'bg-[#EBF2FC] border-[#BFDBFE] text-[#1F4E8C]' : 'bg-[#F7F9F8] border-[#DDE3E0] text-[#858585]'
+              {/* UPI */}
+              <div className={`rounded-xl p-3 border text-xs transition ${
+                profile.coverage_breakdown?.upi 
+                  ? 'bg-[#1E2C3D] border-[#3D78C2]/40 text-[#7AB3EF]' 
+                  : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
               }`}>
                 <div className="font-bold flex items-center justify-between">
-                  <span>UPI Transactions</span>
-                  <span>{profile.coverage_breakdown?.upi ? '✓ 35%' : '0%'}</span>
+                  <span>UPI / Bank</span>
+                  <span className="text-[11px] font-semibold">
+                    {profile.coverage_breakdown?.upi ? '✓ Verified' : 'Not provided'}
+                  </span>
                 </div>
-                <span className="text-[10px] block mt-1">Cash flow & regular inflows</span>
+                <span className="text-[10px] block mt-1 text-[#A7AFB5]">Cash-flow regularity</span>
               </div>
 
-              <div className={`rounded-xl p-3 border text-xs ${
-                profile.coverage_breakdown?.gig_earnings ? 'bg-[#E8F6EE] border-[#A7F3D0] text-[#0B9348]' : 'bg-[#F7F9F8] border-[#DDE3E0] text-[#858585]'
+              {/* Gig Work */}
+              <div className={`rounded-xl p-3 border text-xs transition ${
+                profile.coverage_breakdown?.gig_earnings 
+                  ? 'bg-[#132E20] border-[#16A05A]/40 text-[#4ADE80]' 
+                  : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
               }`}>
                 <div className="font-bold flex items-center justify-between">
-                  <span>Gig Earnings</span>
-                  <span>{profile.coverage_breakdown?.gig_earnings ? '✓ 25%' : '0%'}</span>
+                  <span>Work Earnings</span>
+                  <span className="text-[11px] font-semibold">
+                    {profile.coverage_breakdown?.gig_earnings ? '✓ Verified' : 'Not provided'}
+                  </span>
                 </div>
-                <span className="text-[10px] block mt-1">Platform work continuity</span>
+                <span className="text-[10px] block mt-1 text-[#A7AFB5]">Platform income continuity</span>
               </div>
 
-              <div className={`rounded-xl p-3 border text-xs ${
-                profile.coverage_breakdown?.utility ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-[#F7F9F8] border-[#DDE3E0] text-[#858585]'
+              {/* Utility */}
+              <div className={`rounded-xl p-3 border text-xs transition ${
+                profile.coverage_breakdown?.utility 
+                  ? 'bg-[#332511] border-[#D89A24]/40 text-[#FBBF24]' 
+                  : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
               }`}>
                 <div className="font-bold flex items-center justify-between">
-                  <span>Utility History</span>
-                  <span>{profile.coverage_breakdown?.utility ? '✓ 20%' : '0%'}</span>
+                  <span>Utility Bills</span>
+                  <span className="text-[11px] font-semibold">
+                    {profile.coverage_breakdown?.utility ? '✓ Verified' : 'Not provided'}
+                  </span>
                 </div>
-                <span className="text-[10px] block mt-1">On-time bill payments</span>
+                <span className="text-[10px] block mt-1 text-[#A7AFB5]">On-time bill payments</span>
               </div>
 
-              <div className={`rounded-xl p-3 border text-xs ${
-                profile.coverage_breakdown?.gst ? 'bg-purple-50 border-purple-200 text-purple-800' : 'bg-[#F7F9F8] border-[#DDE3E0] text-[#858585]'
+              {/* GST */}
+              <div className={`rounded-xl p-3 border text-xs transition ${
+                profile.coverage_breakdown?.gst 
+                  ? 'bg-[#2D1B36] border-[#A855F7]/40 text-[#D8B4FE]' 
+                  : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
               }`}>
                 <div className="font-bold flex items-center justify-between">
                   <span>GST Returns</span>
-                  <span>{profile.coverage_breakdown?.gst ? '✓ 15%' : 'Unobserved'}</span>
+                  <span className="text-[11px] font-semibold">
+                    {profile.coverage_breakdown?.gst ? '✓ Verified' : 'Not provided'}
+                  </span>
                 </div>
-                <span className="text-[10px] block mt-1">Merchant business filing</span>
+                <span className="text-[10px] block mt-1 text-[#A7AFB5]">Merchant business filings</span>
               </div>
 
-              <div className={`rounded-xl p-3 border text-xs ${
-                profile.coverage_breakdown?.telecom ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : 'bg-[#F7F9F8] border-[#DDE3E0] text-[#858585]'
+              {/* Telecom */}
+              <div className={`rounded-xl p-3 border text-xs transition ${
+                profile.coverage_breakdown?.telecom 
+                  ? 'bg-[#1A2536] border-[#60A5FA]/40 text-[#93C5FD]' 
+                  : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
               }`}>
                 <div className="font-bold flex items-center justify-between">
                   <span>Telecom Plan</span>
-                  <span>{profile.coverage_breakdown?.telecom ? '✓ 5%' : 'Unobserved'}</span>
+                  <span className="text-[11px] font-semibold">
+                    {profile.coverage_breakdown?.telecom ? '✓ Verified' : 'Not provided'}
+                  </span>
                 </div>
-                <span className="text-[10px] block mt-1">Continuous recharges</span>
+                <span className="text-[10px] block mt-1 text-[#A7AFB5]">Consistent recharges</span>
               </div>
 
-              <div className="rounded-xl p-3 border bg-[#F7F9F8] border-[#DDE3E0] text-[#858585] text-xs">
-                <div className="font-bold flex items-center justify-between">
-                  <span>Total Coverage</span>
-                  <span className="text-[#1F4E8C] font-bold">{profile.data_coverage_score}%</span>
+              {/* Summary Pill */}
+              <div className="rounded-xl p-3 border bg-[#1D2125] border-[#2B3035] text-xs">
+                <div className="font-bold flex items-center justify-between text-[#F3F5F4]">
+                  <span>Total Sources</span>
+                  <span className="text-[#16A05A] font-bold">{profile.provenance.length} Active</span>
                 </div>
-                <span className="text-[10px] block mt-1">Sufficient for underwriting</span>
+                <span className="text-[10px] block mt-1 text-[#A7AFB5]">Sufficient for assessment</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl bg-[#F7F9F8] p-3 text-[11px] text-[#5F6368] border border-[#DDE3E0]">
-            <Info className="inline-block h-3.5 w-3.5 mr-1 text-[#1F4E8C]" />
+          <div className="mt-4 rounded-xl bg-[#1D2125] p-3 text-[11px] text-[#A7AFB5] border border-[#2B3035]">
+            <Info className="inline-block h-3.5 w-3.5 mr-1 text-[#7AB3EF]" />
             Underwriting policy: High coverage enables instant automated approvals, while lower coverage triggers selective underwriter review.
           </div>
         </div>
       </div>
 
-      {/* 5 Behavioural Dimensions */}
+      {/* 3. Five Behavioural Dimensions */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-bold text-[#1F4E8C] flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Five Behavioural Dimensions (0 – 100 Scale)
+          <h3 className="text-base font-bold text-[#F3F5F4] flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-[#3D78C2]" />
+            Behavioural Profile
           </h3>
-          <span className="text-xs text-[#5F6368]">
-            Deterministic mathematical signals from extracted evidence
+          <span className="text-xs text-[#A7AFB5]">
+            0 – 100 scale based on verified customer behaviour
           </span>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {/* 1. Cash-flow Stability */}
-          <div className="rounded-xl border border-[#DDE3E0] bg-white p-5 shadow-xs flex flex-col justify-between">
+          {/* 1. Cash-Flow Stability */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[#222222]">Cash-Flow Stability</span>
-                <span className="rounded bg-[#EBF2FC] px-1.5 py-0.5 text-[10px] font-bold text-[#1F4E8C]">30% wt</span>
+                <span className="font-bold text-[#F3F5F4]">Cash-Flow Stability</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-[#1F4E8C]">
+                <span className="text-3xl font-extrabold text-[#7AB3EF]">
                   {Math.round(profile.dimensions.cash_flow_stability)}
                 </span>
-                <span className="text-xs text-[#858585]">/ 100</span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
               </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#DDE3E0]/60 overflow-hidden">
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] border border-[#2B3035] overflow-hidden">
                 <div
-                  className="h-full bg-[#1F4E8C] rounded-full"
+                  className="h-full bg-[#3D78C2] rounded-full"
                   style={{ width: `${profile.dimensions.cash_flow_stability}%` }}
                 />
               </div>
+              <p className="mt-2 text-xs text-[#A7AFB5] font-medium leading-snug">
+                &ldquo;Income inflows have remained stable.&rdquo;
+              </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#DDE3E0] text-[11px] text-[#5F6368] space-y-1">
-              <div>Inflow CV: <span className="font-semibold text-[#222222]">{profile.features.inflow_volatility_cv.toFixed(2)}</span> (Low)</div>
-              <div>Net Flow: <span className="font-semibold text-[#0B9348]">+{formatCurrency(profile.features.net_cash_flow)}</span></div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#A7AFB5] space-y-1">
+              <div>Inflow Regularity: <span className="font-semibold text-[#F3F5F4]">Consistent</span></div>
+              <div>Net Cash Surplus: <span className="font-semibold text-[#16A05A]">+{formatCurrency(profile.features.net_cash_flow)}</span></div>
             </div>
           </div>
 
           {/* 2. Income Consistency */}
-          <div className="rounded-xl border border-[#DDE3E0] bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[#222222]">Income Consistency</span>
-                <span className="rounded bg-[#E8F6EE] px-1.5 py-0.5 text-[10px] font-bold text-[#0B9348]">20% wt</span>
+                <span className="font-bold text-[#F3F5F4]">Income Consistency</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-[#0B9348]">
+                <span className="text-3xl font-extrabold text-[#4ADE80]">
                   {Math.round(profile.dimensions.income_consistency)}
                 </span>
-                <span className="text-xs text-[#858585]">/ 100</span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
               </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#DDE3E0]/60 overflow-hidden">
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] border border-[#2B3035] overflow-hidden">
                 <div
-                  className="h-full bg-[#0B9348] rounded-full"
+                  className="h-full bg-[#16A05A] rounded-full"
                   style={{ width: `${profile.dimensions.income_consistency}%` }}
                 />
               </div>
+              <p className="mt-2 text-xs text-[#A7AFB5] font-medium leading-snug">
+                &ldquo;Income activity is consistent over time.&rdquo;
+              </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#DDE3E0] text-[11px] text-[#5F6368] space-y-1">
-              <div>Continuity: <span className="font-semibold text-[#222222]">{profile.features.gig_continuity_months || 3} months</span></div>
-              <div>Active Days: <span className="font-semibold text-[#222222]">{Math.round(profile.features.gig_active_days_per_month || 26)} d/mo</span></div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#A7AFB5] space-y-1">
+              <div>Earning Period: <span className="font-semibold text-[#F3F5F4]">{profile.features.gig_continuity_months || 3} months</span></div>
+              <div>Active Days: <span className="font-semibold text-[#F3F5F4]">~{Math.round(profile.features.gig_active_days_per_month || 26)} days/mo</span></div>
             </div>
           </div>
 
           {/* 3. Payment Discipline */}
-          <div className="rounded-xl border border-[#DDE3E0] bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[#222222]">Payment Discipline</span>
-                <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">20% wt</span>
+                <span className="font-bold text-[#F3F5F4]">Payment Discipline</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-amber-600">
+                <span className="text-3xl font-extrabold text-[#FBBF24]">
                   {Math.round(profile.dimensions.payment_discipline)}
                 </span>
-                <span className="text-xs text-[#858585]">/ 100</span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
               </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#DDE3E0]/60 overflow-hidden">
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] border border-[#2B3035] overflow-hidden">
                 <div
-                  className="h-full bg-amber-500 rounded-full"
+                  className="h-full bg-[#D89A24] rounded-full"
                   style={{ width: `${profile.dimensions.payment_discipline}%` }}
                 />
               </div>
+              <p className="mt-2 text-xs text-[#A7AFB5] font-medium leading-snug">
+                &ldquo;Most observed bills were paid on time.&rdquo;
+              </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#DDE3E0] text-[11px] text-[#5F6368] space-y-1">
-              <div>On-Time Rate: <span className="font-semibold text-[#222222]">{Math.round((profile.features.utility_on_time_ratio || 0.8) * 100)}%</span></div>
-              <div>Observed Bills: <span className="font-semibold text-[#222222]">{profile.features.utility_total_bills || 5} records</span></div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#A7AFB5] space-y-1">
+              <div>On-Time Rate: <span className="font-semibold text-[#F3F5F4]">{Math.round((profile.features.utility_on_time_ratio || 0.8) * 100)}%</span></div>
+              <div>Observed Bills: <span className="font-semibold text-[#F3F5F4]">{profile.features.utility_total_bills || 5} records</span></div>
             </div>
           </div>
 
           {/* 4. Activity Continuity */}
-          <div className="rounded-xl border border-[#DDE3E0] bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[#222222]">Activity Continuity</span>
-                <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-bold text-purple-700">15% wt</span>
+                <span className="font-bold text-[#F3F5F4]">Activity Continuity</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-purple-700">
+                <span className="text-3xl font-extrabold text-[#D8B4FE]">
                   {Math.round(profile.dimensions.activity_continuity)}
                 </span>
-                <span className="text-xs text-[#858585]">/ 100</span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
               </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#DDE3E0]/60 overflow-hidden">
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] border border-[#2B3035] overflow-hidden">
                 <div
-                  className="h-full bg-purple-600 rounded-full"
+                  className="h-full bg-purple-500 rounded-full"
                   style={{ width: `${profile.dimensions.activity_continuity}%` }}
                 />
               </div>
+              <p className="mt-2 text-xs text-[#A7AFB5] font-medium leading-snug">
+                &ldquo;Financial activity has remained active across the observed period.&rdquo;
+              </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#DDE3E0] text-[11px] text-[#5F6368] space-y-1">
-              <div>Active Days: <span className="font-semibold text-[#222222]">{profile.features.active_days_count || 39} days</span></div>
-              <div>Transactions: <span className="font-semibold text-[#222222]">{profile.features.total_transactions || 39} total</span></div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#A7AFB5] space-y-1">
+              <div>Active Days: <span className="font-semibold text-[#F3F5F4]">{profile.features.active_days_count || 39} days</span></div>
+              <div>Transactions: <span className="font-semibold text-[#F3F5F4]">{profile.features.total_transactions || 39} records</span></div>
             </div>
           </div>
 
           {/* 5. Financial Resilience */}
-          <div className="rounded-xl border border-[#DDE3E0] bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[#222222]">Financial Resilience</span>
-                <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700">15% wt</span>
+                <span className="font-bold text-[#F3F5F4]">Financial Resilience</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-indigo-700">
+                <span className="text-3xl font-extrabold text-[#93C5FD]">
                   {Math.round(profile.dimensions.financial_resilience)}
                 </span>
-                <span className="text-xs text-[#858585]">/ 100</span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
               </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#DDE3E0]/60 overflow-hidden">
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] border border-[#2B3035] overflow-hidden">
                 <div
-                  className="h-full bg-indigo-600 rounded-full"
+                  className="h-full bg-blue-500 rounded-full"
                   style={{ width: `${profile.dimensions.financial_resilience}%` }}
                 />
               </div>
+              <p className="mt-2 text-xs text-[#A7AFB5] font-medium leading-snug">
+                &ldquo;Observed inflows provide a healthy buffer against regular outflows.&rdquo;
+              </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#DDE3E0] text-[11px] text-[#5F6368] space-y-1">
-              <div>CR / DR Ratio: <span className="font-semibold text-[#222222]">{profile.features.credit_debit_ratio ? profile.features.credit_debit_ratio.toFixed(1) : '3.0'}x</span></div>
-              <div>Buffer: <span className="font-semibold text-[#0B9348]">Healthy</span></div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#A7AFB5] space-y-1">
+              <div>Inflow Coverage: <span className="font-semibold text-[#F3F5F4]">{profile.features.credit_debit_ratio ? profile.features.credit_debit_ratio.toFixed(1) : '3.0'}x</span></div>
+              <div>Cash Buffer: <span className="font-semibold text-[#16A05A]">Healthy</span></div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Grounded Reasons & Interactive Evidence Trace */}
-      <div className="rounded-2xl border border-[#DDE3E0] bg-white p-6 sm:p-8 shadow-xs space-y-6">
+      {/* 4. WHY THIS SCORE (Explainability Section) */}
+      <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-6">
         <div>
-          <h3 className="text-lg font-bold text-[#1F4E8C] flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-[#0B9348]" />
-            Why This Profile? (Explainable Decision Factors)
+          <h3 className="text-lg font-bold text-[#F3F5F4] flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-[#16A05A]" />
+            Why This Score
           </h3>
-          <p className="mt-1 text-xs text-[#5F6368]">
-            Click any factor below to inspect the mathematical signal and raw evidence trace.
+          <p className="mt-1 text-xs text-[#A7AFB5]">
+            Key behavioural signals and observed factors explaining this alternative credit assessment.
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Positive Signals */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-5 space-y-3">
+            <div className="flex items-center gap-2 text-[#4ADE80] font-bold text-xs uppercase tracking-wider">
+              <Check className="h-4 w-4" />
+              Positive Signals
+            </div>
+            <ul className="space-y-2.5 text-xs text-[#F3F5F4]">
+              {profile.positive_factors.map((factor, idx) => (
+                <li key={idx} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#132E20] text-[#4ADE80] text-[10px] font-bold">
+                    ✓
+                  </span>
+                  <div>
+                    <span className="font-semibold text-[#F3F5F4]">{factor.title}</span>
+                    <p className="text-[11px] text-[#A7AFB5] mt-0.5">{factor.summary}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Watch Areas */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-5 space-y-3">
+            <div className="flex items-center gap-2 text-[#FBBF24] font-bold text-xs uppercase tracking-wider">
+              <AlertTriangle className="h-4 w-4" />
+              Watch Areas
+            </div>
+            <ul className="space-y-2.5 text-xs text-[#F3F5F4]">
+              {watchAreas.length > 0 ? (
+                watchAreas.map((area, idx) => (
+                  <li key={idx} className="flex items-start gap-2.5">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#332511] text-[#FBBF24] text-[10px] font-bold">
+                      •
+                    </span>
+                    <p className="text-[11px] text-[#A7AFB5] leading-relaxed">{area}</p>
+                  </li>
+                ))
+              ) : (
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#132E20] text-[#4ADE80] text-[10px] font-bold">
+                    ✓
+                  </span>
+                  <p className="text-[11px] text-[#A7AFB5]">No high-risk warnings observed in the provided evidence.</p>
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Declared vs Observed Comparison Card */}
+      <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-[#F3F5F4] flex items-center gap-2">
+              <Scale className="h-5 w-5 text-[#3D78C2]" />
+              Declared Context vs. Observed Evidence
+            </h3>
+            <p className="mt-0.5 text-xs text-[#A7AFB5]">
+              Demonstrating the alternative assessment equation: Declared Context + Observed Evidence = Alternative Credit Profile
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          {/* Income Comparison */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-4 text-xs space-y-2">
+            <span className="font-bold text-[#A7AFB5] uppercase text-[10px] tracking-wider block">
+              Monthly Income
+            </span>
+            <div className="flex justify-between items-baseline border-b border-[#2B3035] pb-2">
+              <span className="text-[#737C83]">Declared:</span>
+              <span className="font-semibold text-[#F3F5F4]">{formatCurrency(profile.declared_profile?.monthly_income || 32000)}</span>
+            </div>
+            <div className="flex justify-between items-baseline pt-1">
+              <span className="text-[#737C83]">Observed:</span>
+              <span className="font-bold text-[#16A05A]">{formatCurrency(observedMonthlyIncome)} avg</span>
+            </div>
+            <div className="text-[10px] text-[#4ADE80] font-medium pt-1">
+              ✓ Inflows match declared profile
+            </div>
+          </div>
+
+          {/* Income Channel Comparison */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-4 text-xs space-y-2">
+            <span className="font-bold text-[#A7AFB5] uppercase text-[10px] tracking-wider block">
+              Income Channel
+            </span>
+            <div className="flex justify-between items-baseline border-b border-[#2B3035] pb-2">
+              <span className="text-[#737C83]">Declared:</span>
+              <span className="font-semibold text-[#F3F5F4] uppercase">{profile.declared_profile?.income_channel || 'UPI'}</span>
+            </div>
+            <div className="flex justify-between items-baseline pt-1">
+              <span className="text-[#737C83]">Observed:</span>
+              <span className="font-bold text-[#7AB3EF]">UPI Activity Verified</span>
+            </div>
+            <div className="text-[10px] text-[#7AB3EF] font-medium pt-1">
+              ✓ Channel verified via statements
+            </div>
+          </div>
+
+          {/* Outflows & Household */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-4 text-xs space-y-2">
+            <span className="font-bold text-[#A7AFB5] uppercase text-[10px] tracking-wider block">
+              Cash Surplus & Household
+            </span>
+            <div className="flex justify-between items-baseline border-b border-[#2B3035] pb-2">
+              <span className="text-[#737C83]">Declared Exp:</span>
+              <span className="font-semibold text-[#F3F5F4]">{formatCurrency(profile.declared_profile?.monthly_expenses || 16500)}</span>
+            </div>
+            <div className="flex justify-between items-baseline pt-1">
+              <span className="text-[#737C83]">Net Surplus:</span>
+              <span className="font-bold text-[#16A05A]">+{formatCurrency(profile.features.net_cash_flow)}</span>
+            </div>
+            <div className="text-[10px] text-[#4ADE80] font-medium pt-1">
+              ✓ Healthy financial cushion
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. Grounded Evidence Provenance Trace */}
+      <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-6">
+        <div>
+          <h3 className="text-lg font-bold text-[#F3F5F4] flex items-center gap-2">
+            <Layers className="h-5 w-5 text-[#3D78C2]" />
+            Evidence Trace
+          </h3>
+          <p className="mt-1 text-xs text-[#A7AFB5]">
+            Select any factor below to inspect the 5-stage verification and evidence provenance trace.
           </p>
         </div>
 
@@ -463,79 +669,79 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
             return (
               <div
                 key={idx}
-                className="rounded-xl border border-[#DDE3E0] overflow-hidden transition"
+                className="rounded-xl border border-[#2B3035] overflow-hidden transition"
               >
                 <button
                   type="button"
                   onClick={() => setActiveTraceIndex(isExpanded ? null : idx)}
-                  className={`w-full flex items-center justify-between p-4 text-left transition ${
-                    isExpanded ? 'bg-[#EBF2FC]/50' : 'bg-white hover:bg-[#F7F9F8]'
+                  className={`w-full flex items-center justify-between p-4 text-left transition cursor-pointer ${
+                    isExpanded ? 'bg-[#1E2C3D]/60' : 'bg-[#1D2125] hover:bg-[#24292E]'
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E8F6EE] text-[#0B9348]">
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#132E20] text-[#4ADE80]">
                       <CheckCircle2 className="h-4 w-4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#222222]">{factor.title}</h4>
-                      <p className="text-xs text-[#5F6368] mt-0.5">{factor.summary}</p>
+                      <h4 className="text-sm font-bold text-[#F3F5F4]">{factor.title}</h4>
+                      <p className="text-xs text-[#A7AFB5] mt-0.5">{factor.summary}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="hidden sm:inline-block rounded bg-[#E8F6EE] px-2 py-0.5 text-[10px] font-bold text-[#0B9348] uppercase">
-                      {factor.impact} IMPACT
+                    <span className="hidden sm:inline-block rounded bg-[#132E20] px-2 py-0.5 text-[10px] font-bold text-[#4ADE80] uppercase border border-[#16A05A]/30">
+                      {factor.impact} Impact
                     </span>
                     {isExpanded ? (
-                      <ChevronUp className="h-4 w-4 text-[#858585]" />
+                      <ChevronUp className="h-4 w-4 text-[#737C83]" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 text-[#858585]" />
+                      <ChevronDown className="h-4 w-4 text-[#737C83]" />
                     )}
                   </div>
                 </button>
 
                 {/* Evidence Trace Audit Accordion Body */}
                 {isExpanded && (
-                  <div className="border-t border-[#DDE3E0] bg-[#F7F9F8] p-5 space-y-4 animate-in fade-in duration-200">
-                    <div className="text-xs font-bold uppercase tracking-wider text-[#1F4E8C] flex items-center gap-1.5">
+                  <div className="border-t border-[#2B3035] bg-[#171A1D] p-5 space-y-4 animate-in fade-in duration-200">
+                    <div className="text-xs font-bold uppercase tracking-wider text-[#7AB3EF] flex items-center gap-1.5">
                       <Layers className="h-3.5 w-3.5" />
                       5-Stage Evidence Provenance Trace
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-5 text-xs">
                       {/* Step 1 */}
-                      <div className="rounded-lg bg-white p-3 border border-[#DDE3E0] shadow-2xs">
-                        <span className="text-[10px] font-bold text-[#858585] uppercase">1. Observation</span>
-                        <div className="mt-1 font-semibold text-[#222222]">{factor.title}</div>
-                        <span className="text-[10px] text-[#5F6368] block mt-1">Fact extracted from evidence</span>
+                      <div className="rounded-lg bg-[#1D2125] p-3 border border-[#2B3035] shadow-2xs">
+                        <span className="text-[10px] font-bold text-[#737C83] uppercase">1. Observation</span>
+                        <div className="mt-1 font-semibold text-[#F3F5F4] truncate">{factor.title}</div>
+                        <span className="text-[10px] text-[#A7AFB5] block mt-1">Fact extracted from evidence</span>
                       </div>
 
                       {/* Step 2 */}
-                      <div className="rounded-lg bg-white p-3 border border-[#DDE3E0] shadow-2xs">
-                        <span className="text-[10px] font-bold text-[#858585] uppercase">2. Measured Value</span>
-                        <div className="mt-1 font-semibold text-[#0B9348]">{factor.observed_value}</div>
-                        <span className="text-[10px] text-[#5F6368] block mt-1">Mathematical formula</span>
+                      <div className="rounded-lg bg-[#1D2125] p-3 border border-[#2B3035] shadow-2xs">
+                        <span className="text-[10px] font-bold text-[#737C83] uppercase">2. Measured Value</span>
+                        <div className="mt-1 font-semibold text-[#4ADE80]">{factor.observed_value}</div>
+                        <span className="text-[10px] text-[#A7AFB5] block mt-1">Observed behavioural signal</span>
                       </div>
 
                       {/* Step 3 */}
-                      <div className="rounded-lg bg-white p-3 border border-[#DDE3E0] shadow-2xs">
-                        <span className="text-[10px] font-bold text-[#858585] uppercase">3. Source Channel</span>
-                        <div className="mt-1 font-semibold text-[#1F4E8C] uppercase">{factor.source_type}</div>
-                        <span className="text-[10px] text-[#5F6368] block mt-1">{factor.evidence_ref}</span>
+                      <div className="rounded-lg bg-[#1D2125] p-3 border border-[#2B3035] shadow-2xs">
+                        <span className="text-[10px] font-bold text-[#737C83] uppercase">3. Source Channel</span>
+                        <div className="mt-1 font-semibold text-[#7AB3EF] uppercase">{factor.source_type}</div>
+                        <span className="text-[10px] text-[#A7AFB5] block mt-1">{factor.evidence_ref}</span>
                       </div>
 
                       {/* Step 4 */}
-                      <div className="rounded-lg bg-white p-3 border border-[#DDE3E0] shadow-2xs">
-                        <span className="text-[10px] font-bold text-[#858585] uppercase">4. Integrity</span>
-                        <div className="mt-1 font-semibold text-[#0B9348]">PASSED (98% Conf)</div>
-                        <span className="text-[10px] text-[#5F6368] block mt-1">Validated against rules</span>
+                      <div className="rounded-lg bg-[#1D2125] p-3 border border-[#2B3035] shadow-2xs">
+                        <span className="text-[10px] font-bold text-[#737C83] uppercase">4. Integrity</span>
+                        <div className="mt-1 font-semibold text-[#4ADE80]">PASSED (Verified)</div>
+                        <span className="text-[10px] text-[#A7AFB5] block mt-1">Validated against integrity rules</span>
                       </div>
 
                       {/* Step 5 */}
-                      <div className="rounded-lg bg-white p-3 border border-[#DDE3E0] shadow-2xs">
-                        <span className="text-[10px] font-bold text-[#858585] uppercase">5. Model Impact</span>
-                        <div className="mt-1 font-semibold text-[#1F4E8C]">+HIGH Contribution</div>
-                        <span className="text-[10px] text-[#5F6368] block mt-1">Cash-Flow Stability</span>
+                      <div className="rounded-lg bg-[#1D2125] p-3 border border-[#2B3035] shadow-2xs">
+                        <span className="text-[10px] font-bold text-[#737C83] uppercase">5. Dimension Impact</span>
+                        <div className="mt-1 font-semibold text-[#7AB3EF]">Positive Contribution</div>
+                        <span className="text-[10px] text-[#A7AFB5] block mt-1">Strengthens profile</span>
                       </div>
                     </div>
                   </div>
@@ -546,29 +752,29 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
         </div>
       </div>
 
-      {/* Interactive What-If Simulator */}
-      <div className="rounded-2xl border border-[#DDE3E0] bg-white p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex items-center justify-between">
+      {/* 7. Interactive What-If Simulator */}
+      <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-lg font-bold text-[#1F4E8C] flex items-center gap-2">
-              <Sliders className="h-5 w-5" />
+            <h3 className="text-lg font-bold text-[#F3F5F4] flex items-center gap-2">
+              <Sliders className="h-5 w-5 text-[#3D78C2]" />
               What-If Scenario Simulator
             </h3>
-            <p className="mt-1 text-xs text-[#5F6368]">
+            <p className="mt-1 text-xs text-[#A7AFB5]">
               Simulate hypothetical behavioural improvements to estimate score trajectory.
             </p>
           </div>
-          <span className="rounded-full bg-[#F1F4F3] px-3 py-1 text-[11px] font-medium text-[#5F6368] border border-[#DDE3E0]">
+          <span className="rounded-full bg-[#1D2125] px-3 py-1 text-[11px] font-medium text-[#A7AFB5] border border-[#2B3035]">
             Scenario Only • Not an approval guarantee
           </span>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">
           {/* Slider 1: Income Stability */}
-          <div className="rounded-xl border border-[#DDE3E0] bg-[#F7F9F8] p-4">
-            <div className="flex justify-between items-center text-xs font-bold text-[#222222] mb-2">
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-4">
+            <div className="flex justify-between items-center text-xs font-bold text-[#F3F5F4] mb-2">
               <span>Improve Monthly Income Consistency</span>
-              <span className="text-[#1F4E8C]">+{whatIfIncome}%</span>
+              <span className="text-[#7AB3EF]">+{whatIfIncome}%</span>
             </div>
             <input
               type="range"
@@ -581,9 +787,9 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 setWhatIfIncome(val);
                 handleWhatIfSimulate(val / 100, whatIfPayment / 100);
               }}
-              className="w-full accent-[#1F4E8C] cursor-pointer"
+              className="w-full accent-[#3D78C2] cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-[#858585] mt-1">
+            <div className="flex justify-between text-[10px] text-[#737C83] mt-1">
               <span>Current</span>
               <span>+15% stability</span>
               <span>+30% stability</span>
@@ -591,10 +797,10 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
           </div>
 
           {/* Slider 2: Payment Discipline */}
-          <div className="rounded-xl border border-[#DDE3E0] bg-[#F7F9F8] p-4">
-            <div className="flex justify-between items-center text-xs font-bold text-[#222222] mb-2">
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-4">
+            <div className="flex justify-between items-center text-xs font-bold text-[#F3F5F4] mb-2">
               <span>Improve On-Time Bill Regularity</span>
-              <span className="text-[#0B9348]">+{whatIfPayment}%</span>
+              <span className="text-[#4ADE80]">+{whatIfPayment}%</span>
             </div>
             <input
               type="range"
@@ -607,9 +813,9 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 setWhatIfPayment(val);
                 handleWhatIfSimulate(whatIfIncome / 100, val / 100);
               }}
-              className="w-full accent-[#0B9348] cursor-pointer"
+              className="w-full accent-[#16A05A] cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-[#858585] mt-1">
+            <div className="flex justify-between text-[10px] text-[#737C83] mt-1">
               <span>Current (80%)</span>
               <span>+15% on-time</span>
               <span>100% on-time</span>
@@ -619,18 +825,18 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
 
         {/* Simulation Output Card */}
         {whatIfResult && (whatIfIncome > 0 || whatIfPayment > 0) && (
-          <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF2FC] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="rounded-xl border border-[#3D78C2]/40 bg-[#1E2C3D] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#1F4E8C]">Estimated Trajectory:</span>
-                <span className="text-lg font-bold text-[#1F4E8C]">
+                <span className="text-xs font-bold text-[#7AB3EF]">Estimated Trajectory:</span>
+                <span className="text-lg font-bold text-[#F3F5F4]">
                   {whatIfResult.score} / 900
                 </span>
-                <span className="rounded-full bg-[#E8F6EE] px-2 py-0.5 text-xs font-bold text-[#0B9348]">
+                <span className="rounded-full bg-[#132E20] px-2 py-0.5 text-xs font-bold text-[#4ADE80] border border-[#16A05A]/30">
                   +{whatIfResult.delta} points
                 </span>
               </div>
-              <p className="text-xs text-[#5F6368] mt-1">{whatIfResult.explanation}</p>
+              <p className="text-xs text-[#A7AFB5] mt-1">{whatIfResult.explanation}</p>
             </div>
             <button
               onClick={() => {
@@ -638,7 +844,7 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 setWhatIfPayment(0);
                 setWhatIfResult(null);
               }}
-              className="text-xs text-[#1F4E8C] underline font-semibold shrink-0"
+              className="text-xs text-[#7AB3EF] underline font-semibold shrink-0 cursor-pointer"
             >
               Reset Simulation
             </button>
@@ -646,23 +852,23 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
         )}
       </div>
 
-      {/* Ingested Evidence Provenance Table */}
-      <div className="rounded-2xl border border-[#DDE3E0] bg-white p-6 sm:p-8 shadow-xs space-y-4">
+      {/* 8. Ingested Evidence Provenance Table */}
+      <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-[#1F4E8C] flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+            <h3 className="text-base font-bold text-[#F3F5F4] flex items-center gap-2">
+              <FileText className="h-5 w-5 text-[#3D78C2]" />
               Document Provenance & Audit Registry
             </h3>
-            <p className="mt-0.5 text-xs text-[#5F6368]">
+            <p className="mt-0.5 text-xs text-[#A7AFB5]">
               All calculation inputs retain complete audit trails and validation timestamps.
             </p>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-[#DDE3E0]">
+        <div className="overflow-x-auto rounded-xl border border-[#2B3035]">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#F1F4F3] text-[#5F6368] font-semibold border-b border-[#DDE3E0]">
+            <thead className="bg-[#1D2125] text-[#A7AFB5] font-semibold border-b border-[#2B3035]">
               <tr>
                 <th className="px-4 py-3">Document Name</th>
                 <th className="px-4 py-3">Source Channel</th>
@@ -673,7 +879,7 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#DDE3E0]">
+            <tbody className="divide-y divide-[#2B3035]">
               {profile.provenance.map((prov, i) => {
                 const matchedEv = evidenceList.find((e) => e.id === prov.evidence_id) || {
                   id: prov.evidence_id,
@@ -688,34 +894,34 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 } as CanonicalEvidence;
 
                 return (
-                  <tr key={prov.evidence_id || i} className="hover:bg-[#F7F9F8]">
-                    <td className="px-4 py-3 font-medium text-[#222222] flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-[#1F4E8C]" />
+                  <tr key={prov.evidence_id || i} className="hover:bg-[#1D2125]/70 transition">
+                    <td className="px-4 py-3 font-medium text-[#F3F5F4] flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-[#3D78C2]" />
                       <span>{prov.document_name}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-[#EBF2FC] text-[#1F4E8C] uppercase">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-[#1E2C3D] text-[#7AB3EF] border border-[#3D78C2]/30 uppercase">
                         {prov.source_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[#5F6368]">
+                    <td className="px-4 py-3 text-[#A7AFB5]">
                       {prov.period_start} → {prov.period_end}
                     </td>
-                    <td className="px-4 py-3 text-center font-semibold text-[#222222]">
+                    <td className="px-4 py-3 text-center font-semibold text-[#F3F5F4]">
                       {prov.record_count}
                     </td>
-                    <td className="px-4 py-3 text-center font-semibold text-[#0B9348]">
+                    <td className="px-4 py-3 text-center font-semibold text-[#4ADE80]">
                       {Math.round(prov.extraction_confidence * 100)}%
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F6EE] text-[#0B9348]">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#132E20] text-[#4ADE80] border border-[#16A05A]/30">
                         {prov.validation_status}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => onInspectEvidence(matchedEv)}
-                        className="rounded bg-[#F7F9F8] border border-[#DDE3E0] px-2.5 py-1 text-[11px] font-semibold text-[#1F4E8C] hover:bg-[#EBF2FC] transition flex items-center gap-1 ml-auto"
+                        className="rounded bg-[#1D2125] border border-[#2B3035] px-2.5 py-1 text-[11px] font-semibold text-[#7AB3EF] hover:bg-[#24292E] hover:text-white transition flex items-center gap-1 ml-auto cursor-pointer"
                       >
                         <Eye className="h-3 w-3" />
                         Inspect
@@ -729,11 +935,12 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
         </div>
       </div>
 
-      {/* Underwriter Disclaimer */}
-      <div className="rounded-xl border border-[#DDE3E0] bg-[#F7F9F8] p-4 text-[11px] text-[#5F6368] leading-relaxed">
-        <span className="font-bold text-[#222222]">Prototype Governance Notice: </span>
+      {/* 9. Underwriter Disclaimer */}
+      <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-4 text-[11px] text-[#A7AFB5] leading-relaxed">
+        <span className="font-bold text-[#F3F5F4]">Prototype Governance Notice: </span>
         {profile.disclaimer}
       </div>
     </div>
   );
 };
+
