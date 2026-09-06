@@ -100,6 +100,105 @@ type EvidenceEvent struct {
 	Provenance ProvenanceItem         `json:"provenance"`
 }
 
+// AssessmentBand constants for underwriting recommendation
+const (
+	AssessmentLowRisk        = "LOW_RISK"
+	AssessmentModerateRisk   = "MODERATE_RISK"
+	AssessmentHighRisk       = "HIGH_RISK"
+	AssessmentReviewRequired = "REVIEW_REQUIRED"
+
+	BandLowRisk        = "LOW_RISK"
+	BandModerateRisk   = "MODERATE_RISK"
+	BandHighRisk       = "HIGH_RISK"
+	BandReviewRequired = "REVIEW_REQUIRED"
+)
+
+// Standard deterministic assessment flag codes
+const (
+	FlagIncomeConsistent         = "INCOME_CONSISTENT"
+	FlagIncomeVariance           = "INCOME_VARIANCE"
+	FlagDeclaredObservedMismatch = "DECLARED_OBSERVED_MISMATCH"
+	FlagPaymentRegular           = "PAYMENT_REGULAR"
+	FlagPaymentIrregular         = "PAYMENT_IRREGULAR"
+	FlagMultiSourceVerified      = "MULTI_SOURCE_VERIFIED"
+	FlagLimitedEvidence          = "LIMITED_EVIDENCE"
+	FlagLongActivityHistory      = "LONG_ACTIVITY_HISTORY"
+	FlagShortObservationPeriod   = "SHORT_OBSERVATION_PERIOD"
+	FlagEvidenceNeedsReview      = "EVIDENCE_NEEDS_REVIEW"
+)
+
+// ReconciliationStatus constants
+const (
+	ReconConsistent          = "CONSISTENT"
+	ReconMinorVariance       = "MINOR_VARIANCE"
+	ReconSignificantVariance = "SIGNIFICANT_VARIANCE"
+	ReconNotObserved         = "NOT_OBSERVED"
+	ReconPartiallyObserved   = "PARTIALLY_OBSERVED"
+)
+
+// FlagSeverity constants
+type FlagSeverity string
+
+const (
+	SeverityInfo   FlagSeverity = "INFO"
+	SeverityWatch  FlagSeverity = "WATCH"
+	SeverityReview FlagSeverity = "REVIEW"
+
+	FlagInfo   = SeverityInfo
+	FlagWatch  = SeverityWatch
+	FlagReview = SeverityReview
+)
+
+// AssessmentFlag represents a deterministic underwriting alert or signal
+type AssessmentFlag struct {
+	Code               string       `json:"code"` // "INCOME_CONSISTENT", "PAYMENT_REGULAR", etc.
+	Severity           FlagSeverity `json:"severity"` // "INFO", "WATCH", "REVIEW"
+	Title              string       `json:"title"`
+	Description        string       `json:"description"`
+	Explanation        string       `json:"explanation,omitempty"`
+	Category           string       `json:"category,omitempty"`
+	SupportingEvidence []string     `json:"supporting_evidence,omitempty"`
+}
+
+// ReconciliationItem represents declared vs observed comparison for a specific financial attribute
+type ReconciliationItem struct {
+	Field              string   `json:"field"`
+	DeclaredValue      string   `json:"declared_value"`
+	ObservedValue      string   `json:"observed_value"`
+	VariancePct        float64  `json:"variance_pct,omitempty"`
+	Status             string   `json:"status"` // "CONSISTENT", "MINOR_VARIANCE", "SIGNIFICANT_VARIANCE", "NOT_OBSERVED"
+	Description        string   `json:"description,omitempty"`
+	Explanation        string   `json:"explanation,omitempty"`
+	SupportingEvidence []string `json:"supporting_evidence,omitempty"`
+	Notes              string   `json:"notes,omitempty"`
+}
+
+// ReconciliationReport captures the complete declared vs observed reconciliation
+type ReconciliationReport struct {
+	OverallStatus string               `json:"overall_status"` // "CONSISTENT", "MINOR_VARIANCE", "SIGNIFICANT_VARIANCE", "PARTIALLY_OBSERVED"
+	Summary       string               `json:"summary"`
+	Items         []ReconciliationItem `json:"items"`
+}
+
+// ObservedProfile aggregates high-level observed behavioral patterns
+type ObservedProfile struct {
+	ObservedMonthlyIncome   float64 `json:"observed_monthly_income"`
+	ObservedIncomeChannel   string  `json:"observed_income_channel"`
+	ObservedMonthlyExpenses float64 `json:"observed_monthly_expenses"`
+	ActiveMonths            int     `json:"active_months"`
+	PrimaryInflowSource     string  `json:"primary_inflow_source"`
+}
+
+// EvidenceTraceItem explains how evidence signals contributed to a specific behavioural dimension
+type EvidenceTraceItem struct {
+	Dimension        string   `json:"dimension"`       // "cash_flow_stability", "income_consistency", etc.
+	DimensionTitle   string   `json:"dimension_title"` // "Cash-Flow Stability"
+	Score            float64  `json:"score"`           // 0 - 100
+	Sources          []string `json:"sources"`         // ["UPI Statement", "Platform Payouts"]
+	ExtractedSignals []string `json:"extracted_signals"`
+	Summary          string   `json:"summary"`
+}
+
 // ValidationResult represents validation checks performed on extracted evidence
 type ValidationResult struct {
 	Status       string   `json:"status"` // "VALID", "PARTIAL", "NEEDS_REVIEW", "FAILED" (also "PASSED")
@@ -281,6 +380,8 @@ type ExplainableReason struct {
 	EvidenceRef   string     `json:"evidence_ref"`
 	ObservedValue string     `json:"observed_value"`
 	Impact        string     `json:"impact"` // "HIGH", "MEDIUM", "LOW"
+	Period        string     `json:"period,omitempty"`
+	Dimension     string     `json:"dimension,omitempty"`
 }
 
 // DeclaredProfile represents the applicant's self-reported financial context
@@ -303,9 +404,12 @@ type AssessmentProfile struct {
 	CustomerName      string               `json:"customer_name,omitempty"`
 	PersonaType       string               `json:"persona_type,omitempty"` // "gig_worker", "small_merchant", "first_time_borrower", "informal_worker"
 	DeclaredProfile   *DeclaredProfile     `json:"declared_profile,omitempty"`
+	ObservedProfile   *ObservedProfile     `json:"observed_profile,omitempty"`
+	Reconciliation    *ReconciliationReport `json:"reconciliation,omitempty"`
 	BehavioralScore   float64              `json:"behavioral_score"`    // 0 - 100
 	FinalScore        int                  `json:"final_score"`         // 300 - 900 (300 + 6 * BehavioralScore)
 	RiskBand          string               `json:"risk_band"`           // "Low Risk", "Low-Moderate Risk", "Moderate Risk", "Higher Risk"
+	AssessmentBand    string               `json:"assessment_band"`     // "LOW_RISK", "MODERATE_RISK", "HIGH_RISK", "REVIEW_REQUIRED"
 	ConfidenceScore   int                  `json:"confidence_score"`    // 0 - 100%
 	DataCoverageScore int                  `json:"data_coverage_score"` // 0 - 100%
 	Dimensions        BehavioralDimensions `json:"dimensions"`
@@ -314,6 +418,8 @@ type AssessmentProfile struct {
 	AttentionFactors  []ExplainableReason  `json:"attention_factors"`
 	Features          DerivedFeatures      `json:"features"`
 	Provenance        []ProvenanceItem     `json:"provenance"`
+	EvidenceTraces    []EvidenceTraceItem  `json:"evidence_traces,omitempty"`
+	AssessmentFlags   []AssessmentFlag     `json:"assessment_flags,omitempty"`
 	CoverageBreakdown map[string]bool      `json:"coverage_breakdown"`
 	CreatedAt         time.Time            `json:"created_at"`
 	Disclaimer        string               `json:"disclaimer"`

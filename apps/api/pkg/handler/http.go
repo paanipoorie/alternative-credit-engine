@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -23,18 +25,23 @@ type AnalyzeRequest struct {
 }
 
 type WhatIfRequest struct {
-	CurrentAssessment      domain.AssessmentProfile `json:"current_assessment"`
-	IncomeStabilityDelta   float64                  `json:"income_stability_delta,omitempty"`   // e.g. +0.10 (+10% stability)
-	PaymentDisciplineDelta float64                  `json:"payment_discipline_delta,omitempty"` // e.g. +0.10
+	CurrentAssessment       domain.AssessmentProfile `json:"current_assessment"`
+	IncomeStabilityDelta    float64                  `json:"income_stability_delta,omitempty"`    // e.g. +0.10 (+10% stability)
+	PaymentDisciplineDelta  float64                  `json:"payment_discipline_delta,omitempty"`  // e.g. +0.10 (+10% punctuality)
+	ActivityContinuityDelta float64                  `json:"activity_continuity_delta,omitempty"` // e.g. +0.10 (+10% activity)
+	AdditionalInflowMonthly float64                  `json:"additional_inflow_monthly,omitempty"` // e.g. +5000
 }
 
 type WhatIfResponse struct {
-	OriginalScore   int     `json:"original_score"`
-	EstimatedScore  int     `json:"estimated_score"`
-	ScoreDelta      int     `json:"score_delta"`
-	Explanation     string  `json:"explanation"`
-	OriginalBScore  float64 `json:"original_b_score"`
-	EstimatedBScore float64 `json:"estimated_b_score"`
+	IsHypothetical      bool                        `json:"is_hypothetical"`
+	OriginalScore       int                         `json:"original_score"`
+	EstimatedScore      int                         `json:"estimated_score"`
+	ScoreDelta          int                         `json:"score_delta"`
+	OriginalBScore      float64                     `json:"original_b_score"`
+	EstimatedBScore     float64                     `json:"estimated_b_score"`
+	SimulatedDimensions domain.BehavioralDimensions `json:"simulated_dimensions"`
+	Explanation         string                      `json:"explanation"`
+	SimulationSteps     []string                    `json:"simulation_steps,omitempty"`
 }
 
 // RegisterRoutes registers all assessment and evidence ingestion endpoints
@@ -202,10 +209,7 @@ func handleAnalyze(w http.ResponseWriter, r *http.Request) {
 		persona = req.DeclaredProfile.EmploymentType
 	}
 
-	profile := defaultService.AssessCurrent(req.CustomerID, name, persona, req.Evidence)
-	if req.DeclaredProfile != nil {
-		profile.DeclaredProfile = req.DeclaredProfile
-	}
+	profile := defaultService.AssessCurrent(req.CustomerID, name, persona, req.Evidence, req.DeclaredProfile)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(profile)
@@ -224,8 +228,7 @@ func handleDemoAssessment(w http.ResponseWriter, r *http.Request) {
 	}
 	defaultService.SetEvidenceList(ptrList)
 
-	profile := defaultService.AssessCurrent("DEMO-RAJESH-001", "Rajesh Kumar", "gig_worker", groundTruth)
-	profile.DeclaredProfile = &domain.DeclaredProfile{
+	demoDeclared := &domain.DeclaredProfile{
 		FullName:        "Rajesh Kumar",
 		Age:             29,
 		City:            "Bengaluru",
@@ -236,6 +239,8 @@ func handleDemoAssessment(w http.ResponseWriter, r *http.Request) {
 		MonthlyExpenses: 16500,
 		Dependents:      2,
 	}
+
+	profile := defaultService.AssessCurrent("DEMO-RAJESH-001", "Rajesh Kumar", "gig_worker", groundTruth, demoDeclared)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(profile)
@@ -255,14 +260,44 @@ func handleWhatIf(w http.ResponseWriter, r *http.Request) {
 
 	origDim := req.CurrentAssessment.Dimensions
 	simDim := origDim
+	var simSteps []string
 
-	// Simulate improvements
+	// 1. Simulate Income Stability improvements
 	if req.IncomeStabilityDelta != 0 {
+		pct := int(req.IncomeStabilityDelta * 100)
 		simDim.CashFlowStability = clamp(simDim.CashFlowStability*(1.0+req.IncomeStabilityDelta), 0, 100)
 		simDim.IncomeConsistency = clamp(simDim.IncomeConsistency*(1.0+req.IncomeStabilityDelta), 0, 100)
+		if pct > 0 {
+			simSteps = append(simSteps, fmt.Sprintf("+%d%% steady income consistency reduces monthly variance", pct))
+		} else {
+			simSteps = append(simSteps, fmt.Sprintf("%d%% income volatility increases cash flow risk", pct))
+		}
 	}
+
+	// 2. Simulate Payment Discipline improvements
 	if req.PaymentDisciplineDelta != 0 {
+		pct := int(req.PaymentDisciplineDelta * 100)
 		simDim.PaymentDiscipline = clamp(simDim.PaymentDiscipline*(1.0+req.PaymentDisciplineDelta), 0, 100)
+		if pct > 0 {
+			simSteps = append(simSteps, fmt.Sprintf("+%d%% on-time payment track record across billing cycles", pct))
+		} else {
+			simSteps = append(simSteps, fmt.Sprintf("%d%% payment delay frequency", pct))
+		}
+	}
+
+	// 3. Simulate Activity Continuity
+	if req.ActivityContinuityDelta != 0 {
+		pct := int(req.ActivityContinuityDelta * 100)
+		simDim.ActivityContinuity = clamp(simDim.ActivityContinuity*(1.0+req.ActivityContinuityDelta), 0, 100)
+		if pct > 0 {
+			simSteps = append(simSteps, fmt.Sprintf("+%d%% continuous active days on platform", pct))
+		}
+	}
+
+	// 4. Simulate Additional Monthly Inflow
+	if req.AdditionalInflowMonthly > 0 {
+		simDim.FinancialResilience = clamp(simDim.FinancialResilience+8.0, 0, 100)
+		simSteps = append(simSteps, fmt.Sprintf("+₹%.0f monthly buffer enhances financial resilience", req.AdditionalInflowMonthly))
 	}
 
 	origB := req.CurrentAssessment.BehavioralScore
@@ -273,7 +308,8 @@ func handleWhatIf(w http.ResponseWriter, r *http.Request) {
 		(0.15 * simDim.FinancialResilience)
 
 	simB = clamp(simB, 0, 100)
-	estScore := int(300.0 + (6.0 * simB))
+	simB = math.Round(simB*100) / 100
+	estScore := int(math.Round(300.0 + (6.0 * simB)))
 	if estScore > 900 {
 		estScore = 900
 	}
@@ -286,15 +322,20 @@ func handleWhatIf(w http.ResponseWriter, r *http.Request) {
 	explanation := "Improving income stability and maintaining on-time payment records enhances the Cash-Flow Stability and Payment Discipline behavioral dimensions."
 	if delta < 0 {
 		explanation = "Observed reduction in stability or delayed payments lowers the behavioral score."
+	} else if delta == 0 {
+		explanation = "Simulated adjustments maintain the current solid behavioral score profile."
 	}
 
 	resp := WhatIfResponse{
-		OriginalScore:   req.CurrentAssessment.FinalScore,
-		EstimatedScore:  estScore,
-		ScoreDelta:      delta,
-		Explanation:     explanation,
-		OriginalBScore:  origB,
-		EstimatedBScore: simB,
+		IsHypothetical:      true,
+		OriginalScore:       req.CurrentAssessment.FinalScore,
+		EstimatedScore:      estScore,
+		ScoreDelta:          delta,
+		OriginalBScore:      origB,
+		EstimatedBScore:     simB,
+		SimulatedDimensions: simDim,
+		Explanation:         explanation,
+		SimulationSteps:     simSteps,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -314,3 +355,4 @@ func clamp(val, min, max float64) float64 {
 func dummyUsageForImports() {
 	_ = filepath.Base("")
 }
+

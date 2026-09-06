@@ -79,7 +79,9 @@ export async function fetchDemoProfile(): Promise<AssessmentProfile> {
 export async function calculateWhatIf(
   currentAssessment: AssessmentProfile,
   incomeStabilityDelta: number,
-  paymentDisciplineDelta: number
+  paymentDisciplineDelta: number,
+  activityContinuityDelta: number = 0,
+  additionalInflowMonthly: number = 0
 ): Promise<WhatIfResponse> {
   const res = await fetch(`${API_BASE}/api/assess/what-if`, {
     method: 'POST',
@@ -88,6 +90,8 @@ export async function calculateWhatIf(
       current_assessment: currentAssessment,
       income_stability_delta: incomeStabilityDelta,
       payment_discipline_delta: paymentDisciplineDelta,
+      activity_continuity_delta: activityContinuityDelta,
+      additional_inflow_monthly: additionalInflowMonthly,
     }),
   });
 

@@ -101,6 +101,8 @@ export interface ExplainableReason {
   evidence_ref: string;
   observed_value: string;
   impact: 'HIGH' | 'MEDIUM' | 'LOW';
+  period?: string;
+  dimension?: string;
 }
 
 export interface DerivedFeatures {
@@ -144,15 +146,67 @@ export interface DeclaredProfile {
   dependents: number;
 }
 
+export type AssessmentBand = 'LOW_RISK' | 'MODERATE_RISK' | 'HIGH_RISK' | 'REVIEW_REQUIRED';
+
+export type FlagSeverity = 'INFO' | 'WATCH' | 'REVIEW';
+
+export interface AssessmentFlag {
+  code: string;
+  severity: FlagSeverity;
+  title: string;
+  description: string;
+  explanation?: string;
+  category?: string;
+  supporting_evidence?: string[];
+}
+
+export interface ReconciliationItem {
+  field: string;
+  declared_value: string;
+  observed_value: string;
+  variance_pct?: number;
+  status: 'CONSISTENT' | 'MINOR_VARIANCE' | 'SIGNIFICANT_VARIANCE' | 'NOT_OBSERVED';
+  description?: string;
+  explanation?: string;
+  supporting_evidence?: string[];
+  notes?: string;
+}
+
+export interface ReconciliationReport {
+  overall_status: 'CONSISTENT' | 'MINOR_VARIANCE' | 'SIGNIFICANT_VARIANCE' | 'PARTIALLY_OBSERVED';
+  summary: string;
+  items: ReconciliationItem[];
+}
+
+export interface ObservedProfile {
+  observed_monthly_income: number;
+  observed_income_channel: string;
+  observed_monthly_expenses: number;
+  active_months: number;
+  primary_inflow_source: string;
+}
+
+export interface EvidenceTraceItem {
+  dimension: string;
+  dimension_title: string;
+  score: number;
+  sources: string[];
+  extracted_signals: string[];
+  summary: string;
+}
+
 export interface AssessmentProfile {
   assessment_id: string;
   customer_id: string;
   customer_name?: string;
   persona_type?: string;
   declared_profile?: DeclaredProfile;
+  observed_profile?: ObservedProfile;
+  reconciliation?: ReconciliationReport;
   behavioral_score: number;
   final_score: number;
   risk_band: string;
+  assessment_band?: AssessmentBand | string;
   confidence_score: number;
   data_coverage_score: number;
   dimensions: BehavioralDimensions;
@@ -161,16 +215,21 @@ export interface AssessmentProfile {
   attention_factors: ExplainableReason[];
   features: DerivedFeatures;
   provenance: ProvenanceItem[];
+  evidence_traces?: EvidenceTraceItem[];
+  assessment_flags?: AssessmentFlag[];
   coverage_breakdown: Record<string, boolean>;
   created_at: string;
   disclaimer: string;
 }
 
 export interface WhatIfResponse {
+  is_hypothetical?: boolean;
   original_score: number;
   estimated_score: number;
   score_delta: number;
-  explanation: string;
   original_b_score: number;
   estimated_b_score: number;
+  simulated_dimensions?: BehavioralDimensions;
+  explanation: string;
+  simulation_steps?: string[];
 }

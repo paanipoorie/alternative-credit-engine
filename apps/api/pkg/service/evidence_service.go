@@ -166,7 +166,7 @@ func (s *EvidenceService) SetEvidenceList(list []*domain.CanonicalEvidence) {
 }
 
 // AssessCurrent calculates the alternative credit profile based on provided or currently ingested evidence
-func (s *EvidenceService) AssessCurrent(customerID, customerName, personaType string, explicitEvidence []domain.CanonicalEvidence) *domain.AssessmentProfile {
+func (s *EvidenceService) AssessCurrent(customerID, customerName, personaType string, explicitEvidence []domain.CanonicalEvidence, declared ...*domain.DeclaredProfile) *domain.AssessmentProfile {
 	var evidenceToAssess []domain.CanonicalEvidence
 
 	if len(explicitEvidence) > 0 {
@@ -194,7 +194,7 @@ func (s *EvidenceService) AssessCurrent(customerID, customerName, personaType st
 		personaType = "gig_worker"
 	}
 
-	profile := calculator.Assess(customerID, customerName, personaType, evidenceToAssess)
+	profile := calculator.Assess(customerID, customerName, personaType, evidenceToAssess, declared...)
 	return &profile
 }
 
