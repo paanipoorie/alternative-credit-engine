@@ -1,0 +1,62 @@
+[
+  {
+    "id": "UTIL-202511-01",
+    "bill_period": "2025-11",
+    "provider_name": "Bescom Electricity",
+    "service_type": "electricity",
+    "bill_amount": 1420.00,
+    "due_date": "2025-11-20T00:00:00Z",
+    "payment_date": "2025-11-18T10:30:00Z",
+    "status": "PAID_ON_TIME",
+    "days_late": 0,
+    "payment_amount": 1420.00
+  },
+  {
+    "id": "UTIL-202512-02",
+    "bill_period": "2025-12",
+    "provider_name": "Bescom Electricity",
+    "service_type": "electricity",
+    "bill_amount": 1580.00,
+    "due_date": "2025-12-20T00:00:00Z",
+    "payment_date": "2025-12-19T14:15:00Z",
+    "status": "PAID_ON_TIME",
+    "days_late": 0,
+    "payment_amount": 1580.00
+  },
+  {
+    "id": "UTIL-202601-03",
+    "bill_period": "2026-01",
+    "provider_name": "Bescom Electricity",
+    "service_type": "electricity",
+    "bill_amount": 1350.00,
+    "due_date": "2026-01-20T00:00:00Z",
+    "payment_date": "2026-01-17T09:45:00Z",
+    "status": "PAID_ON_TIME",
+    "days_late": 0,
+    "payment_amount": 1350.00
+  },
+  {
+    "id": "UTIL-202602-04",
+    "bill_period": "2026-02",
+    "provider_name": "Bescom Electricity",
+    "service_type": "electricity",
+    "bill_amount": 1490.00,
+    "due_date": "2026-02-20T00:00:00Z",
+    "payment_date": "2026-02-22T16:20:00Z",
+    "status": "PAID_LATE",
+    "days_late": 2,
+    "payment_amount": 1490.00
+  },
+  {
+    "id": "UTIL-202603-05",
+    "bill_period": "2026-03",
+    "provider_name": "Bescom Electricity",
+    "service_type": "electricity",
+    "bill_amount": 1620.00,
+    "due_date": "2026-03-20T00:00:00Z",
+    "payment_date": "2026-03-19T11:00:00Z",
+    "status": "PAID_ON_TIME",
+    "days_late": 0,
+    "payment_amount": 1620.00
+  }
+]

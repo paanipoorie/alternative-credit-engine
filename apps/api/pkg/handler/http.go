@@ -1,23 +1,24 @@
 package handler
 
 import (
-	"encoding/csv"
 	"encoding/json"
+	"io"
 	"net/http"
-	"os"
 	"path/filepath"
-	"strconv"
-	"time"
+	"strings"
 
-	"github.com/paanipoorie/alternative-credit-engine/apps/api/pkg/calculator"
 	"github.com/paanipoorie/alternative-credit-engine/apps/api/pkg/domain"
+	"github.com/paanipoorie/alternative-credit-engine/apps/api/pkg/service"
 )
 
+var defaultService = service.NewEvidenceService()
+
 type AnalyzeRequest struct {
-	CustomerID   string                     `json:"customer_id"`
+	CustomerID   string                     `json:"customer_id,omitempty"`
 	CustomerName string                     `json:"customer_name,omitempty"`
 	PersonaType  string                     `json:"persona_type,omitempty"`
-	Evidence     []domain.CanonicalEvidence `json:"evidence"`
+	EvidenceIDs  []string                   `json:"evidence_ids,omitempty"`
+	Evidence     []domain.CanonicalEvidence `json:"evidence,omitempty"`
 }
 
 type WhatIfRequest struct {
@@ -35,11 +36,106 @@ type WhatIfResponse struct {
 	EstimatedBScore float64 `json:"estimated_b_score"`
 }
 
-// RegisterRoutes registers assessment API endpoints
+// RegisterRoutes registers all assessment and evidence ingestion endpoints
 func RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("/api/evidence/upload", handleUploadEvidence)
+	mux.HandleFunc("/api/evidence", handleListOrClearEvidence)
+	mux.HandleFunc("/api/evidence/", handleSingleEvidence)
+
 	mux.HandleFunc("/api/assess/analyze", handleAnalyze)
 	mux.HandleFunc("/api/assess/demo", handleDemoAssessment)
 	mux.HandleFunc("/api/assess/what-if", handleWhatIf)
+}
+
+func handleUploadEvidence(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 25MB max memory for multipart form
+	if err := r.ParseMultipartForm(25 << 20); err != nil {
+		http.Error(w, "Failed to parse multipart form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Form field 'file' is required: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Failed to read uploaded file: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	mimeType := header.Header.Get("Content-Type")
+	evidence, err := defaultService.IngestFile(r.Context(), header.Filename, mimeType, fileBytes)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error":    err.Error(),
+			"filename": header.Filename,
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(evidence)
+}
+
+func handleListOrClearEvidence(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		items := defaultService.ListEvidence()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(items)
+		return
+	}
+
+	if r.Method == http.MethodDelete {
+		defaultService.ClearEvidence()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "All evidence cleared successfully"})
+		return
+	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+}
+
+func handleSingleEvidence(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimPrefix(r.URL.Path, "/api/evidence/")
+	if id == "" {
+		http.Error(w, "Evidence ID required", http.StatusBadRequest)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		ev, err := defaultService.GetEvidence(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ev)
+
+	case http.MethodDelete:
+		found := defaultService.DeleteEvidence(id)
+		if !found {
+			http.Error(w, "Evidence not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "Evidence deleted successfully", "id": id})
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func handleAnalyze(w http.ResponseWriter, r *http.Request) {
@@ -49,19 +145,12 @@ func handleAnalyze(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req AnalyzeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && err != io.EOF {
 		http.Error(w, "Invalid JSON payload: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if req.CustomerID == "" {
-		req.CustomerID = "CUST-" + strconv.FormatInt(time.Now().Unix(), 10)
-	}
-	if req.CustomerName == "" {
-		req.CustomerName = "Verified Applicant"
-	}
-
-	profile := calculator.Assess(req.CustomerID, req.CustomerName, req.PersonaType, req.Evidence)
+	profile := defaultService.AssessCurrent(req.CustomerID, req.CustomerName, req.PersonaType, req.Evidence)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(profile)
@@ -73,8 +162,14 @@ func handleDemoAssessment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	evidenceList := loadSyntheticEvidence()
-	profile := calculator.Assess("DEMO-RAJESH-001", "Rajesh Kumar", "gig_worker", evidenceList)
+	groundTruth := service.LoadSyntheticGroundTruth()
+	var ptrList []*domain.CanonicalEvidence
+	for i := range groundTruth {
+		ptrList = append(ptrList, &groundTruth[i])
+	}
+	defaultService.SetEvidenceList(ptrList)
+
+	profile := defaultService.AssessCurrent("DEMO-RAJESH-001", "Rajesh Kumar", "gig_worker", groundTruth)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(profile)
@@ -140,144 +235,6 @@ func handleWhatIf(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-func loadSyntheticEvidence() []domain.CanonicalEvidence {
-	dataDir := findDataDir()
-	var evidenceList []domain.CanonicalEvidence
-
-	// 1. UPI
-	csvPath := filepath.Join(dataDir, "upi_statement.csv")
-	if csvFile, err := os.Open(csvPath); err == nil {
-		defer csvFile.Close()
-		reader := csv.NewReader(csvFile)
-		if records, err := reader.ReadAll(); err == nil {
-			var txns []domain.UPITransaction
-			for i, row := range records {
-				if i == 0 || len(row) < 8 {
-					continue
-				}
-				amt, _ := strconv.ParseFloat(row[2], 64)
-				parsedDate, _ := time.Parse("2006-01-02 15:04:05", row[1])
-				txns = append(txns, domain.UPITransaction{
-					ID:           row[0],
-					Date:         parsedDate,
-					Amount:       amt,
-					Type:         row[3],
-					Counterparty: row[4],
-					Description:  row[5],
-					Status:       row[6],
-					Category:     row[7],
-				})
-			}
-			evidenceList = append(evidenceList, domain.CanonicalEvidence{
-				ID:                   "EV-UPI-DEMO",
-				CustomerID:           "DEMO-RAJESH-001",
-				SourceType:           domain.SourceUPI,
-				SourceProvider:       "BHIM UPI / Bank",
-				PeriodStart:          "2026-01-01",
-				PeriodEnd:            "2026-03-31",
-				SourceQuality:        0.95,
-				ExtractionConfidence: 0.98,
-				Provenance: domain.ProvenanceItem{
-					EvidenceID:           "EV-UPI-DEMO",
-					SourceType:           domain.SourceUPI,
-					DocumentName:         "upi_statement.csv",
-					DocumentFormat:       domain.FormatCSV,
-					PeriodStart:          "2026-01-01",
-					PeriodEnd:            "2026-03-31",
-					RecordCount:          len(txns),
-					ExtractionConfidence: 0.98,
-					SourceQualityScore:   0.95,
-					ValidationStatus:     "PASSED",
-					IngestedAt:           time.Now(),
-				},
-				UPITransactions: txns,
-			})
-		}
-	}
-
-	// 2. Utility
-	utilPath := filepath.Join(dataDir, "utility_bills.json")
-	if utilBytes, err := os.ReadFile(utilPath); err == nil {
-		var bills []domain.UtilityPayment
-		if err := json.Unmarshal(utilBytes, &bills); err == nil {
-			evidenceList = append(evidenceList, domain.CanonicalEvidence{
-				ID:                   "EV-UTIL-DEMO",
-				CustomerID:           "DEMO-RAJESH-001",
-				SourceType:           domain.SourceUtility,
-				SourceProvider:       "BESCOM Electricity",
-				PeriodStart:          "2025-11-01",
-				PeriodEnd:            "2026-03-31",
-				SourceQuality:        0.90,
-				ExtractionConfidence: 0.95,
-				Provenance: domain.ProvenanceItem{
-					EvidenceID:           "EV-UTIL-DEMO",
-					SourceType:           domain.SourceUtility,
-					DocumentName:         "utility_bill_bescom.pdf",
-					DocumentFormat:       domain.FormatPDF,
-					PeriodStart:          "2025-11-01",
-					PeriodEnd:            "2026-03-31",
-					RecordCount:          len(bills),
-					ExtractionConfidence: 0.95,
-					SourceQualityScore:   0.90,
-					ValidationStatus:     "PASSED",
-					IngestedAt:           time.Now(),
-				},
-				UtilityPayments: bills,
-			})
-		}
-	}
-
-	// 3. Gig
-	gigPath := filepath.Join(dataDir, "gig_payouts.json")
-	if gigBytes, err := os.ReadFile(gigPath); err == nil {
-		var payouts []domain.GigPayout
-		if err := json.Unmarshal(gigBytes, &payouts); err == nil {
-			evidenceList = append(evidenceList, domain.CanonicalEvidence{
-				ID:                   "EV-GIG-DEMO",
-				CustomerID:           "DEMO-RAJESH-001",
-				SourceType:           domain.SourceGig,
-				SourceProvider:       "Zomato Delivery Partner",
-				PeriodStart:          "2026-01-01",
-				PeriodEnd:            "2026-03-31",
-				SourceQuality:        0.95,
-				ExtractionConfidence: 0.96,
-				Provenance: domain.ProvenanceItem{
-					EvidenceID:           "EV-GIG-DEMO",
-					SourceType:           domain.SourceGig,
-					DocumentName:         "zomato_earnings_summary.pdf",
-					DocumentFormat:       domain.FormatPDF,
-					PeriodStart:          "2026-01-01",
-					PeriodEnd:            "2026-03-31",
-					RecordCount:          len(payouts),
-					ExtractionConfidence: 0.96,
-					SourceQualityScore:   0.95,
-					ValidationStatus:     "PASSED",
-					IngestedAt:           time.Now(),
-				},
-				GigPayouts: payouts,
-			})
-		}
-	}
-
-	return evidenceList
-}
-
-func findDataDir() string {
-	candidates := []string{
-		"../../../../data/synthetic",
-		"../../../data/synthetic",
-		"../../data/synthetic",
-		"data/synthetic",
-		"/home/nish4nt/dev/alternative-credit-engine/data/synthetic",
-	}
-	for _, p := range candidates {
-		if _, err := os.Stat(p); err == nil {
-			return p
-		}
-	}
-	return "data/synthetic"
-}
-
 func clamp(val, min, max float64) float64 {
 	if val < min {
 		return min
@@ -286,4 +243,8 @@ func clamp(val, min, max float64) float64 {
 		return max
 	}
 	return val
+}
+
+func dummyUsageForImports() {
+	_ = filepath.Base("")
 }

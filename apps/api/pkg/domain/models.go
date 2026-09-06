@@ -26,6 +26,39 @@ const (
 	FormatJSON  DocumentFormat = "json"
 )
 
+// ProcessingStatus represents the lifecycle state of evidence
+type ProcessingStatus string
+
+const (
+	StatusUploaded    ProcessingStatus = "UPLOADED"
+	StatusIdentifying ProcessingStatus = "IDENTIFYING"
+	StatusExtracting  ProcessingStatus = "EXTRACTING"
+	StatusValidating  ProcessingStatus = "VALIDATING"
+	StatusAnalyzing   ProcessingStatus = "ANALYZING"
+	StatusComplete    ProcessingStatus = "COMPLETE"
+	StatusFailed      ProcessingStatus = "FAILED"
+)
+
+// ClassificationResult represents the result of document classification
+type ClassificationResult struct {
+	SourceType   SourceType     `json:"source_type"`
+	DocumentType string         `json:"document_type"`
+	Provider     string         `json:"provider"`
+	Period       string         `json:"period,omitempty"`
+	Confidence   float64        `json:"confidence"`
+	Format       DocumentFormat `json:"format"`
+	Reason       string         `json:"reason,omitempty"`
+}
+
+// ValidationResult represents validation checks performed on extracted evidence
+type ValidationResult struct {
+	Status       string   `json:"status"` // "PASSED", "WARNING", "FAILED"
+	ValidCount   int      `json:"valid_count"`
+	InvalidCount int      `json:"invalid_count"`
+	Errors       []string `json:"errors,omitempty"`
+	Warnings     []string `json:"warnings,omitempty"`
+}
+
 // UPITransaction represents a single normalized UPI transaction
 type UPITransaction struct {
 	ID           string    `json:"id"`
