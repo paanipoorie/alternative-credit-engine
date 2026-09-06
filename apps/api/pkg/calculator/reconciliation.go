@@ -546,7 +546,7 @@ func GenerateEvidenceTraces(
 		Score:            dimensions.CashFlowStability,
 		Sources:          cfSources,
 		ExtractedSignals: cfSignals,
-		Summary:          fmt.Sprintf("Derived from inflow volume continuity, net liquidity buffer, and monthly cash flow coefficient of variation (Score: %.1f/100).", dimensions.CashFlowStability),
+		Summary:          "Derived from inflow volume continuity, net liquidity buffer, and monthly cash flow stability.",
 	})
 
 	// 2. Income Consistency Trace
@@ -572,7 +572,7 @@ func GenerateEvidenceTraces(
 		Score:            dimensions.IncomeConsistency,
 		Sources:          icSources,
 		ExtractedSignals: icSignals,
-		Summary:          fmt.Sprintf("Evaluated on earning frequency, active working day density, and earning stability across observation cycles (Score: %.1f/100).", dimensions.IncomeConsistency),
+		Summary:          "Evaluated on earning frequency, active working day density, and earning stability across observation cycles.",
 	})
 
 	// 3. Payment Discipline Trace
@@ -593,7 +593,7 @@ func GenerateEvidenceTraces(
 		Score:            dimensions.PaymentDiscipline,
 		Sources:          pdSources,
 		ExtractedSignals: pdSignals,
-		Summary:          fmt.Sprintf("Computed from recurring bill fulfillment punctuality, absence of overdue penalties, and expenditure discipline (Score: %.1f/100).", dimensions.PaymentDiscipline),
+		Summary:          "Computed from recurring bill fulfillment punctuality, absence of overdue penalties, and expenditure discipline.",
 	})
 
 	// 4. Activity Continuity Trace
@@ -609,7 +609,7 @@ func GenerateEvidenceTraces(
 		Score:            dimensions.ActivityContinuity,
 		Sources:          acSources,
 		ExtractedSignals: acSignals,
-		Summary:          fmt.Sprintf("Reflects day-to-day economic engagement density and operational persistence over calendar periods (Score: %.1f/100).", dimensions.ActivityContinuity),
+		Summary:          "Reflects day-to-day economic engagement density and operational persistence over calendar periods.",
 	})
 
 	// 5. Financial Resilience Trace
@@ -629,7 +629,7 @@ func GenerateEvidenceTraces(
 		Score:            dimensions.FinancialResilience,
 		Sources:          frSources,
 		ExtractedSignals: frSignals,
-		Summary:          fmt.Sprintf("Calculated from net surplus liquidity, expense cushion ratio, and recurring buffer strength (Score: %.1f/100).", dimensions.FinancialResilience),
+		Summary:          "Calculated from net surplus liquidity, expense cushion ratio, and recurring buffer strength.",
 	})
 
 	return traces

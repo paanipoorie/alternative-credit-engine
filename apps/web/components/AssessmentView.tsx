@@ -65,23 +65,23 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
     switch (band) {
       case 'LOW_RISK':
         return {
-          label: 'LOW RISK (STANDARD APPROVAL TIER)',
+          label: 'LOW RISK — Assessment Recommendation',
           className: 'bg-[#132E20] text-[#4ADE80] border-[#16A05A]/40',
         };
       case 'MODERATE_RISK':
         return {
-          label: 'MODERATE RISK (STANDARD UNDERWRITING)',
+          label: 'MODERATE RISK — Assessment Recommendation',
           className: 'bg-[#332511] text-[#FBBF24] border-[#D89A24]/40',
         };
       case 'HIGH_RISK':
         return {
-          label: 'HIGH RISK (ELEVATED CAUTION)',
+          label: 'HIGH RISK — Assessment Recommendation',
           className: 'bg-[#381818] text-[#F87171] border-rose-800/40',
         };
       case 'REVIEW_REQUIRED':
       default:
         return {
-          label: 'REVIEW REQUIRED (MANUAL UNDERWRITING)',
+          label: 'REVIEW REQUIRED — Assessment Recommendation',
           className: 'bg-[#2D1B36] text-[#D8B4FE] border-purple-500/40',
         };
     }
@@ -293,12 +293,6 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 {profile.final_score}
               </span>
               <span className="text-xl font-medium text-[#737C83]">/ 900</span>
-            </div>
-
-            {/* Behavioral Score Sub-metric */}
-            <div className="mt-2 flex items-center gap-2 text-xs text-[#A7AFB5]">
-              <span>Behavioral Composite Score:</span>
-              <span className="font-bold text-[#7AB3EF]">{profile.behavioral_score.toFixed(1)} / 100</span>
             </div>
 
             {/* Clean Customer-Facing Assessment Summary */}
@@ -756,7 +750,6 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
             <div>
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-[#F3F5F4]">Cash-Flow Stability</span>
-                <span className="text-[10px] font-semibold text-[#737C83]">30% wt</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-3xl font-extrabold text-[#7AB3EF]">
@@ -785,7 +778,6 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
             <div>
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-[#F3F5F4]">Income Consistency</span>
-                <span className="text-[10px] font-semibold text-[#737C83]">20% wt</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-3xl font-extrabold text-[#4ADE80]">
@@ -814,7 +806,6 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
             <div>
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-[#F3F5F4]">Payment Discipline</span>
-                <span className="text-[10px] font-semibold text-[#737C83]">20% wt</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-3xl font-extrabold text-[#FBBF24]">
@@ -843,7 +834,6 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
             <div>
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-[#F3F5F4]">Activity Continuity</span>
-                <span className="text-[10px] font-semibold text-[#737C83]">15% wt</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-3xl font-extrabold text-[#D8B4FE]">
@@ -872,7 +862,6 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
             <div>
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-[#F3F5F4]">Financial Resilience</span>
-                <span className="text-[10px] font-semibold text-[#737C83]">15% wt</span>
               </div>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-3xl font-extrabold text-[#93C5FD]">
