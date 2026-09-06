@@ -381,17 +381,180 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 	return evidenceList
 }
 
-// LoadStrongSyntheticProfile provides a 4-source verified prime profile (Scenario A: Multi-source, High Quality, Low Risk)
+// LoadStrongSyntheticProfile provides a 4-source verified prime profile (Scenario B: Priya Sundaram - Strong Multi-Source)
 func LoadStrongSyntheticProfile() ([]domain.CanonicalEvidence, *domain.DeclaredProfile) {
-	baseList := LoadSyntheticGroundTruth()
+	var evidenceList []domain.CanonicalEvidence
 
-	// Add 4th source: Telecom Recharges
-	t1, _ := time.Parse("2006-01-02", "2026-01-05")
-	t2, _ := time.Parse("2006-01-02", "2026-02-04")
-	t3, _ := time.Parse("2006-01-02", "2026-03-06")
+	// 1. UPI Statement (High volume, regular inflows, very low volatility)
+	var priyaTxns []domain.UPITransaction
+	t0, _ := time.Parse("2006-01-02", "2026-01-01")
+	// Generate 45 transactions across Jan-Mar 2026
+	for m := 0; m < 3; m++ {
+		monthDate := t0.AddDate(0, m, 0)
+		for d := 1; d <= 14; d++ {
+			txDate := monthDate.AddDate(0, 0, d*2)
+			priyaTxns = append(priyaTxns, domain.UPITransaction{
+				ID:           fmt.Sprintf("TXN-PRIYA-UPI-%d-%d", m+1, d),
+				Date:         txDate,
+				Amount:       2430.0,
+				Type:         "credit",
+				Counterparty: "Urban Company / Platform Direct Credit",
+				Description:  "Weekly Partner Remittance",
+				Status:       "SUCCESS",
+				Category:     "gig_earnings",
+			})
+		}
+		// 1 monthly utility/rent debit
+		priyaTxns = append(priyaTxns, domain.UPITransaction{
+			ID:           fmt.Sprintf("TXN-PRIYA-OUT-%d", m+1),
+			Date:         monthDate.AddDate(0, 0, 5),
+			Amount:       2100.0,
+			Type:         "debit",
+			Counterparty: "BESCOM Electricity / Landlord UPI",
+			Description:  "Monthly Utilities",
+			Status:       "SUCCESS",
+			Category:     "utility",
+		})
+	}
 
+	upiEv := domain.CanonicalEvidence{
+		ID:                   "EV-UPI-PRIYA-001",
+		CustomerID:           "DEMO-PRIYA-002",
+		SourceType:           domain.SourceUPI,
+		SourceProvider:       "BHIM UPI / Bank",
+		PeriodStart:          "2026-01-01",
+		PeriodEnd:            "2026-03-31",
+		SourceQuality:        0.98,
+		ExtractionConfidence: 0.99,
+		Origin:               domain.OriginSyntheticDemo,
+		Provenance: domain.ProvenanceItem{
+			EvidenceID:           "EV-UPI-PRIYA-001",
+			SourceType:           domain.SourceUPI,
+			DocumentName:         "priya_upi_statement_q1.csv",
+			DocumentFormat:       domain.FormatCSV,
+			PeriodStart:          "2026-01-01",
+			PeriodEnd:            "2026-03-31",
+			RecordCount:          len(priyaTxns),
+			ExtractionConfidence: 0.99,
+			SourceQualityScore:   0.98,
+			ValidationStatus:     domain.ValidationValid,
+			ContentHash:          "b4c5d6e7f8a91011121314151617181920212223242526272829303132333435",
+			MimeType:             "text/csv",
+			FileSize:             14250,
+			Origin:               domain.OriginSyntheticDemo,
+			IngestedAt:           time.Now(),
+		},
+		UPITransactions: priyaTxns,
+	}
+	upiEv.Events = extractor.NormalizeToEvents(&upiEv)
+	evidenceList = append(evidenceList, upiEv)
+
+	// 2. Utility Bills: 6 consecutive on-time cycles
+	var priyaBills []domain.UtilityPayment
+	for i := 0; i < 6; i++ {
+		bDate := t0.AddDate(0, -2+i, 10)
+		pDate := t0.AddDate(0, -2+i, 12)
+		periodStr := bDate.Format("2006-01")
+		priyaBills = append(priyaBills, domain.UtilityPayment{
+			ID:            fmt.Sprintf("UTIL-PRIYA-BESCOM-%d", i+1),
+			BillPeriod:    periodStr,
+			ProviderName:  "BESCOM Electricity",
+			ServiceType:   "electricity",
+			BillAmount:    1280.0 + float64(i*25),
+			DueDate:       bDate.AddDate(0, 0, 15),
+			PaymentDate:   &pDate,
+			Status:        "PAID_ON_TIME",
+			DaysLate:      0,
+			PaymentAmount: 1280.0 + float64(i*25),
+		})
+	}
+
+	utilEv := domain.CanonicalEvidence{
+		ID:                   "EV-UTIL-PRIYA-002",
+		CustomerID:           "DEMO-PRIYA-002",
+		SourceType:           domain.SourceUtility,
+		SourceProvider:       "BESCOM Electricity",
+		PeriodStart:          "2025-11-01",
+		PeriodEnd:            "2026-04-30",
+		SourceQuality:        0.98,
+		ExtractionConfidence: 0.98,
+		Origin:               domain.OriginSyntheticDemo,
+		Provenance: domain.ProvenanceItem{
+			EvidenceID:           "EV-UTIL-PRIYA-002",
+			SourceType:           domain.SourceUtility,
+			DocumentName:         "bescom_electricity_6months.pdf",
+			DocumentFormat:       domain.FormatPDF,
+			PeriodStart:          "2025-11-01",
+			PeriodEnd:            "2026-04-30",
+			RecordCount:          len(priyaBills),
+			ExtractionConfidence: 0.98,
+			SourceQualityScore:   0.98,
+			ValidationStatus:     domain.ValidationValid,
+			ContentHash:          "c5d6e7f8a9101112131415161718192021222324252627282930313233343536",
+			MimeType:             "application/pdf",
+			FileSize:             115200,
+			Origin:               domain.OriginSyntheticDemo,
+			IngestedAt:           time.Now(),
+		},
+		UtilityPayments: priyaBills,
+	}
+	utilEv.Events = extractor.NormalizeToEvents(&utilEv)
+	evidenceList = append(evidenceList, utilEv)
+
+	// 3. Gig Earnings: 3 continuous months Urban Company Partner payouts
+	var priyaGig []domain.GigPayout
+	for m := 0; m < 3; m++ {
+		pStart := t0.AddDate(0, m, 1)
+		pEnd := t0.AddDate(0, m+1, 0)
+		priyaGig = append(priyaGig, domain.GigPayout{
+			ID:            fmt.Sprintf("GIG-PRIYA-UC-%d", m+1),
+			Platform:      "UrbanCompany",
+			PeriodStart:   pStart,
+			PeriodEnd:     pEnd,
+			GrossEarnings: 36200.0,
+			NetPayout:     34020.0,
+			TripsOrJobs:   92 + m*2,
+			ActiveDays:    28,
+			Incentives:    1800.0,
+			Tips:          400.0,
+		})
+	}
+
+	gigEv := domain.CanonicalEvidence{
+		ID:                   "EV-GIG-PRIYA-003",
+		CustomerID:           "DEMO-PRIYA-002",
+		SourceType:           domain.SourceGig,
+		SourceProvider:       "Urban Company Partner",
+		PeriodStart:          "2026-01-01",
+		PeriodEnd:            "2026-03-31",
+		SourceQuality:        0.98,
+		ExtractionConfidence: 0.98,
+		Origin:               domain.OriginSyntheticDemo,
+		Provenance: domain.ProvenanceItem{
+			EvidenceID:           "EV-GIG-PRIYA-003",
+			SourceType:           domain.SourceGig,
+			DocumentName:         "urban_company_earnings_q1.pdf",
+			DocumentFormat:       domain.FormatPDF,
+			PeriodStart:          "2026-01-01",
+			PeriodEnd:            "2026-03-31",
+			RecordCount:          len(priyaGig),
+			ExtractionConfidence: 0.98,
+			SourceQualityScore:   0.98,
+			ValidationStatus:     domain.ValidationValid,
+			ContentHash:          "d6e7f8a910111213141516171819202122232425262728293031323334353637",
+			MimeType:             "application/pdf",
+			FileSize:             98400,
+			Origin:               domain.OriginSyntheticDemo,
+			IngestedAt:           time.Now(),
+		},
+		GigPayouts: priyaGig,
+	}
+	gigEv.Events = extractor.NormalizeToEvents(&gigEv)
+	evidenceList = append(evidenceList, gigEv)
+
+	// 4. Telecom: Reliance Jio Prepaid recharges
 	telecomEv := domain.CanonicalEvidence{
-		ID:                   "EV-TEL-DEMO-004",
+		ID:                   "EV-TEL-PRIYA-004",
 		CustomerID:           "DEMO-PRIYA-002",
 		SourceType:           domain.SourceTelecom,
 		SourceProvider:       "Reliance Jio Prepaid",
@@ -401,7 +564,7 @@ func LoadStrongSyntheticProfile() ([]domain.CanonicalEvidence, *domain.DeclaredP
 		ExtractionConfidence: 0.98,
 		Origin:               domain.OriginSyntheticDemo,
 		Provenance: domain.ProvenanceItem{
-			EvidenceID:           "EV-TEL-DEMO-004",
+			EvidenceID:           "EV-TEL-PRIYA-004",
 			SourceType:           domain.SourceTelecom,
 			DocumentName:         "jio_recharge_history.pdf",
 			DocumentFormat:       domain.FormatPDF,
@@ -411,21 +574,20 @@ func LoadStrongSyntheticProfile() ([]domain.CanonicalEvidence, *domain.DeclaredP
 			ExtractionConfidence: 0.98,
 			SourceQualityScore:   0.95,
 			ValidationStatus:     domain.ValidationValid,
-			ContentHash:          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			ContentHash:          "e7f8a91011121314151617181920212223242526272829303132333435363738",
 			MimeType:             "application/pdf",
 			FileSize:             104200,
 			Origin:               domain.OriginSyntheticDemo,
 			IngestedAt:           time.Now(),
 		},
 		TelecomRecords: []domain.TelecomRecharge{
-			{ID: "TEL-001", Operator: "Jio", Date: t1, Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
-			{ID: "TEL-002", Operator: "Jio", Date: t2, Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
-			{ID: "TEL-003", Operator: "Jio", Date: t3, Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
+			{ID: "TEL-PRIYA-001", Operator: "Jio", Date: t0.AddDate(0, 0, 5), Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
+			{ID: "TEL-PRIYA-002", Operator: "Jio", Date: t0.AddDate(0, 1, 3), Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
+			{ID: "TEL-PRIYA-003", Operator: "Jio", Date: t0.AddDate(0, 2, 4), Amount: 349, ValidityDays: 28, PlanType: "unlimited_data"},
 		},
 	}
 	telecomEv.Events = extractor.NormalizeToEvents(&telecomEv)
-
-	fullList := append(baseList, telecomEv)
+	evidenceList = append(evidenceList, telecomEv)
 
 	declared := &domain.DeclaredProfile{
 		FullName:        "Priya Sundaram",
@@ -439,41 +601,178 @@ func LoadStrongSyntheticProfile() ([]domain.CanonicalEvidence, *domain.DeclaredP
 		Dependents:      1,
 	}
 
-	return fullList, declared
+	return evidenceList, declared
 }
 
-// LoadContradictorySyntheticProfile creates a profile with high score claim + income contradictions & duplicate files (Scenario B)
+// LoadContradictorySyntheticProfile creates a profile with high income claim + lower observed income & duplicate files (Scenario C: Amit Verma)
 func LoadContradictorySyntheticProfile() ([]domain.CanonicalEvidence, *domain.DeclaredProfile) {
-	// Base synthetic UPI statement
-	baseList := LoadSyntheticGroundTruth()
+	var evidenceList []domain.CanonicalEvidence
 
-	// Clone UPI statement to simulate identical duplicate document upload under different name
-	var dupUPI domain.CanonicalEvidence
-	for _, ev := range baseList {
-		if ev.SourceType == domain.SourceUPI {
-			dupUPI = ev
-			dupUPI.ID = "EV-UPI-DUP-999"
-			dupUPI.Provenance.DocumentName = "upi_statement_february_copy.csv"
-			// Same ContentHash to trigger cryptographic duplicate detection
-			break
+	t0, _ := time.Parse("2006-01-02", "2026-01-01")
+
+	// 1. UPI Statement: Inflows ~₹26,500/mo (CV: 0.18), Outflows ~₹16,500/mo
+	var amitTxns []domain.UPITransaction
+	inflowPlan := []float64{22000.0, 31500.0, 26000.0}
+	outflowPlan := []float64{18000.0, 16000.0, 15500.0}
+
+	for m := 0; m < 3; m++ {
+		monthDate := t0.AddDate(0, m, 0)
+		// 2 inflow transactions per month
+		halfInflow := inflowPlan[m] / 2.0
+		amitTxns = append(amitTxns, domain.UPITransaction{
+			ID:           fmt.Sprintf("TXN-AMIT-IN-%d-1", m+1),
+			Date:         monthDate.AddDate(0, 0, 7),
+			Amount:       halfInflow,
+			Type:         "credit",
+			Counterparty: "Client Direct Transfer",
+			Description:  "Contract Settlement",
+			Status:       "SUCCESS",
+			Category:     "salary",
+		})
+		amitTxns = append(amitTxns, domain.UPITransaction{
+			ID:           fmt.Sprintf("TXN-AMIT-IN-%d-2", m+1),
+			Date:         monthDate.AddDate(0, 0, 21),
+			Amount:       halfInflow,
+			Type:         "credit",
+			Counterparty: "Freelance Client Payout",
+			Description:  "Invoice Payment",
+			Status:       "SUCCESS",
+			Category:     "salary",
+		})
+
+		// 4 debit transactions per month
+		quarterOutflow := outflowPlan[m] / 4.0
+		for d := 1; d <= 4; d++ {
+			amitTxns = append(amitTxns, domain.UPITransaction{
+				ID:           fmt.Sprintf("TXN-AMIT-OUT-%d-%d", m+1, d),
+				Date:         monthDate.AddDate(0, 0, d*6),
+				Amount:       quarterOutflow,
+				Type:         "debit",
+				Counterparty: "Retail & Bill Payment",
+				Description:  "Household Outflow",
+				Status:       "SUCCESS",
+				Category:     "general",
+			})
 		}
 	}
 
-	// Add duplicate UPI item to evidence list
-	contradictoryList := append(baseList, dupUPI)
+	upiHash := "f8a9101112131415161718192021222324252627282930313233343536373839"
 
-	// Applicant claims ₹75,000 monthly income, but verified UPI inflows are only ~₹34,000/month
+	upiEv := domain.CanonicalEvidence{
+		ID:                   "EV-UPI-AMIT-001",
+		CustomerID:           "DEMO-AMIT-003",
+		SourceType:           domain.SourceUPI,
+		SourceProvider:       "HDFC Bank UPI",
+		PeriodStart:          "2026-01-01",
+		PeriodEnd:            "2026-03-31",
+		SourceQuality:        0.90,
+		ExtractionConfidence: 0.95,
+		Origin:               domain.OriginSyntheticDemo,
+		Provenance: domain.ProvenanceItem{
+			EvidenceID:           "EV-UPI-AMIT-001",
+			SourceType:           domain.SourceUPI,
+			DocumentName:         "bank_statement_q1.csv",
+			DocumentFormat:       domain.FormatCSV,
+			PeriodStart:          "2026-01-01",
+			PeriodEnd:            "2026-03-31",
+			RecordCount:          len(amitTxns),
+			ExtractionConfidence: 0.95,
+			SourceQualityScore:   0.90,
+			ValidationStatus:     domain.ValidationValid,
+			ContentHash:          upiHash,
+			MimeType:             "text/csv",
+			FileSize:             11200,
+			Origin:               domain.OriginSyntheticDemo,
+			IngestedAt:           time.Now(),
+		},
+		UPITransactions: amitTxns,
+	}
+	upiEv.Events = extractor.NormalizeToEvents(&upiEv)
+	evidenceList = append(evidenceList, upiEv)
+
+	// 2. Utility Bills: 4 bills, 2 paid late
+	var amitBills []domain.UtilityPayment
+	billAmounts := []float64{2400.0, 2850.0, 2600.0, 3100.0}
+	billStatus := []string{"PAID_ON_TIME", "PAID_LATE", "PAID_ON_TIME", "PAID_LATE"}
+	billDaysLate := []int{0, 6, 0, 8}
+
+	for i := 0; i < 4; i++ {
+		bDate := t0.AddDate(0, -1+i, 5)
+		var pDate *time.Time
+		if billDaysLate[i] >= 0 {
+			pd := bDate.AddDate(0, 0, 15+billDaysLate[i])
+			pDate = &pd
+		}
+		periodStr := bDate.Format("2006-01")
+		amitBills = append(amitBills, domain.UtilityPayment{
+			ID:            fmt.Sprintf("UTIL-AMIT-MSEB-%d", i+1),
+			BillPeriod:    periodStr,
+			ProviderName:  "Adani Electricity Mumbai",
+			ServiceType:   "electricity",
+			BillAmount:    billAmounts[i],
+			DueDate:       bDate.AddDate(0, 0, 15),
+			PaymentDate:   pDate,
+			Status:        billStatus[i],
+			DaysLate:      billDaysLate[i],
+			PaymentAmount: billAmounts[i],
+		})
+	}
+
+	utilEv := domain.CanonicalEvidence{
+		ID:                   "EV-UTIL-AMIT-002",
+		CustomerID:           "DEMO-AMIT-003",
+		SourceType:           domain.SourceUtility,
+		SourceProvider:       "Adani Electricity Mumbai",
+		PeriodStart:          "2025-12-01",
+		PeriodEnd:            "2026-03-31",
+		SourceQuality:        0.88,
+		ExtractionConfidence: 0.92,
+		Origin:               domain.OriginSyntheticDemo,
+		Provenance: domain.ProvenanceItem{
+			EvidenceID:           "EV-UTIL-AMIT-002",
+			SourceType:           domain.SourceUtility,
+			DocumentName:         "mumbai_electricity_bills.pdf",
+			DocumentFormat:       domain.FormatPDF,
+			PeriodStart:          "2025-12-01",
+			PeriodEnd:            "2026-03-31",
+			RecordCount:          len(amitBills),
+			ExtractionConfidence: 0.92,
+			SourceQualityScore:   0.88,
+			ValidationStatus:     domain.ValidationValid,
+			ContentHash:          "a910111213141516171819202122232425262728293031323334353637383940",
+			MimeType:             "application/pdf",
+			FileSize:             84000,
+			Origin:               domain.OriginSyntheticDemo,
+			IngestedAt:           time.Now(),
+		},
+		UtilityPayments: amitBills,
+	}
+	utilEv.Events = extractor.NormalizeToEvents(&utilEv)
+	evidenceList = append(evidenceList, utilEv)
+
+	// 3. Duplicate Document Upload (triggers cryptographic duplicate detection)
+	dupUPI := upiEv
+	dupUPI.ID = "EV-UPI-AMIT-DUP"
+	dupUPI.Provenance.EvidenceID = "EV-UPI-AMIT-DUP"
+	dupUPI.Provenance.DocumentName = "bank_statement_q1_copy.csv"
+	dupUPI.Provenance.ContentHash = upiHash // Identical content hash
+	dupUPI.Provenance.ValidationStatus = domain.ValidationNeedsReview
+	evidenceList = append(evidenceList, dupUPI)
+
+	// Declared ₹75,000 monthly income vs observed ~₹26,500/mo (>64% divergence)
 	declared := &domain.DeclaredProfile{
 		FullName:        "Amit Verma",
 		Age:             28,
 		City:            "Mumbai",
 		Pincode:         "400001",
 		EmploymentType:  "salaried",
-		MonthlyIncome:   75000, // Significant divergence (>50% mismatch with observed ₹34,000)
+		MonthlyIncome:   75000,
 		IncomeChannel:   "bank_transfer",
 		MonthlyExpenses: 45000,
 		Dependents:      3,
 	}
 
-	return contradictoryList, declared
+	return evidenceList, declared
 }
+
+
