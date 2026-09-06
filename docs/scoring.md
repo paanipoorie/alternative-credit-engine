@@ -72,23 +72,47 @@ Possible features:
 - inflow/outflow relationship
 - recurring obligations relative to observed inflows
 
-## 3. Score
+## 3. Score & Transparent Prototype Scoring Framework
+
+### Prototype Dimension Weights
+- **Cash-flow Stability (C):** 30% (`0.30`)
+- **Income Consistency (I):** 20% (`0.20`)
+- **Payment Discipline (P):** 20% (`0.20`)
+- **Activity Continuity (A):** 15% (`0.15`)
+- **Financial Resilience (R):** 15% (`0.15`)
+
+Each dimension is scored deterministically on a **0–100 scale**.
+
+### Composite Behavioral Score ($B$)
+$$B = 0.30C + 0.20I + 0.20P + 0.15A + 0.15R$$
+
+### 300–900 Credit Profile Score Mapping
+$$\text{Score} = 300 + (6 \times B)$$
+
+**Example Calculation:**
+- Cash-flow Stability ($C$) = 82
+- Income Consistency ($I$) = 70
+- Payment Discipline ($P$) = 88
+- Activity Continuity ($A$) = 75
+- Financial Resilience ($R$) = 62
+
+$$B = (82 \times 0.30) + (70 \times 0.20) + (88 \times 0.20) + (75 \times 0.15) + (62 \times 0.15) = 76.75$$
+$$\text{Score} = 300 + (6 \times 76.75) = 760.5 \approx 761$$
+
+### Risk Bands
+- **750 – 900:** Low Risk
+- **670 – 749:** Low–Moderate Risk
+- **580 – 669:** Moderate Risk
+- **300 – 579:** Higher Risk
+
+> **IMPORTANT:** These weights and formulas represent a **transparent prototype scoring framework** for underwriting decision support. In production, this transparent framework can be replaced with a calibrated statistical/ML risk model trained on historical repayment outcomes.
 
 Prototype UI:
 
 ```text
-742 / 900
+761 / 900
 LOW–MODERATE RISK
 ```
-
-The exact prototype weighting is illustrative.
-
-Without TVS historical repayment labels, the team must not claim:
-
-- that the weights are statistically validated
-- that the score predicts default at a specific accuracy
-- that 742 corresponds to a real TVS credit grade
-- that the model guarantees approval
 
 ## 4. Production model
 
