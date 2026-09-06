@@ -39,6 +39,19 @@ export interface GigPayout {
   tips: number;
 }
 
+export interface EvidenceEvent {
+  id: string;
+  timestamp: string;
+  source_type: SourceType;
+  event_type: string;
+  amount: number;
+  direction: string;
+  category: string;
+  status: string;
+  metadata?: Record<string, any>;
+  confidence: number;
+}
+
 export interface ProvenanceItem {
   evidence_id: string;
   source_type: SourceType;
@@ -51,6 +64,7 @@ export interface ProvenanceItem {
   source_quality_score: number;
   validation_status: string;
   validation_notes?: string[];
+  origin?: 'LIVE_N8N_GEMINI' | 'LIVE_GEMINI' | 'LIVE_PARSER' | 'SYNTHETIC_DEMO';
   ingested_at: string;
 }
 
@@ -64,6 +78,8 @@ export interface CanonicalEvidence {
   source_quality: number;
   extraction_confidence: number;
   provenance: ProvenanceItem;
+  origin?: 'LIVE_N8N_GEMINI' | 'LIVE_GEMINI' | 'LIVE_PARSER' | 'SYNTHETIC_DEMO';
+  events?: EvidenceEvent[];
   upi_transactions?: UPITransaction[];
   utility_payments?: UtilityPayment[];
   gig_payouts?: GigPayout[];

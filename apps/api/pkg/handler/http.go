@@ -40,6 +40,7 @@ type WhatIfResponse struct {
 // RegisterRoutes registers all assessment and evidence ingestion endpoints
 func RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/evidence/upload", handleUploadEvidence)
+	mux.HandleFunc("/api/evidence/process", handleProcessEvidence)
 	mux.HandleFunc("/api/evidence", handleListOrClearEvidence)
 	mux.HandleFunc("/api/evidence/", handleSingleEvidence)
 
@@ -87,6 +88,47 @@ func handleUploadEvidence(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(evidence)
+}
+
+type ProcessEvidenceRequest struct {
+	Filename string `json:"filename"`
+	MimeType string `json:"mime_type,omitempty"`
+	Content  string `json:"content"`
+}
+
+func handleProcessEvidence(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req ProcessEvidenceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Filename == "" {
+		req.Filename = "evidence_document.txt"
+	}
+	if req.MimeType == "" {
+		req.MimeType = "text/plain"
+	}
+
+	evidence, err := defaultService.IngestFile(r.Context(), req.Filename, req.MimeType, []byte(req.Content))
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error":    err.Error(),
+			"filename": req.Filename,
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(evidence)
 }
 

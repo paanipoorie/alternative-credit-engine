@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/paanipoorie/alternative-credit-engine/apps/api/pkg/domain"
 )
@@ -51,6 +52,22 @@ func TestClassifyDocuments(t *testing.T) {
 			wantSource: domain.SourceGig,
 		},
 		{
+			// Verify random filename is classified by content, not filename
+			filename:   "random_statement_123.pdf",
+			text:       "BHIM UPI / Bank Account Statement\nAccount Holder: Rajesh Kumar | UPI ID: rajesh.k@okhdfcbank",
+			wantSource: domain.SourceUPI,
+		},
+		{
+			filename:   "random_utility_doc.pdf",
+			text:       "BESCOM - Electricity Bill & Payment Receipt\nConsumer No: 8842109912 | Amount Payable: 1350.00",
+			wantSource: domain.SourceUtility,
+		},
+		{
+			filename:   "random_gig_doc.pdf",
+			text:       "Zomato Delivery Partner - Monthly Earnings Summary\nPartner ID: ZOM-99214 | Active Days: 26 | Net Payout: 25000",
+			wantSource: domain.SourceGig,
+		},
+		{
 			filename:   "random_document.pdf",
 			text:       "General receipt for office stationary with no alternative credit indicators",
 			wantSource: "",
@@ -62,6 +79,40 @@ func TestClassifyDocuments(t *testing.T) {
 		if res.SourceType != tt.wantSource {
 			t.Errorf("ClassifyDocument(%s) = %v, want %v", tt.filename, res.SourceType, tt.wantSource)
 		}
+	}
+}
+
+func TestNormalizeToEvents(t *testing.T) {
+	ev := &domain.CanonicalEvidence{
+		ID:                   "EV-TEST-001",
+		SourceType:           domain.SourceUPI,
+		ExtractionConfidence: 0.96,
+		UPITransactions: []domain.UPITransaction{
+			{
+				ID:           "TXN-001",
+				Date:         time.Now(),
+				Amount:       1500,
+				Type:         "credit",
+				Counterparty: "Zomato",
+				Description:  "Payout",
+				Status:       "SUCCESS",
+				Category:     "gig_earnings",
+			},
+		},
+	}
+
+	events := NormalizeToEvents(ev)
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+	if events[0].EventType != "transaction" {
+		t.Errorf("Expected event type transaction, got %s", events[0].EventType)
+	}
+	if events[0].Amount != 1500 {
+		t.Errorf("Expected amount 1500, got %f", events[0].Amount)
+	}
+	if events[0].Direction != "credit" {
+		t.Errorf("Expected direction credit, got %s", events[0].Direction)
 	}
 }
 

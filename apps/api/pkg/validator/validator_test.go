@@ -34,11 +34,37 @@ func TestValidateEvidenceUPI(t *testing.T) {
 	}
 
 	res := ValidateEvidence(ev)
-	if res.Status != "WARNING" {
-		t.Errorf("Expected status WARNING due to duplicates and negative amount, got %s", res.Status)
+	if res.Status != domain.ValidationPartial && res.Status != "WARNING" {
+		t.Errorf("Expected status PARTIAL/WARNING due to duplicates and negative amount, got %s", res.Status)
 	}
 	if len(ev.UPITransactions) != 2 {
 		t.Errorf("Expected 2 valid transactions after excluding invalid amount, got %d", len(ev.UPITransactions))
+	}
+}
+
+func TestValidateEvidenceUtility(t *testing.T) {
+	dueDate := time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC)
+	payDate := time.Date(2026, 1, 18, 0, 0, 0, 0, time.UTC)
+	ev := &domain.CanonicalEvidence{
+		SourceType: domain.SourceUtility,
+		UtilityPayments: []domain.UtilityPayment{
+			{
+				ID:            "UTIL-1",
+				BillPeriod:    "2026-01",
+				ProviderName:  "BESCOM",
+				ServiceType:   "electricity",
+				BillAmount:    1200.0,
+				DueDate:       dueDate,
+				PaymentDate:   &payDate,
+				Status:        "PAID_ON_TIME",
+				PaymentAmount: 1200.0,
+			},
+		},
+	}
+
+	res := ValidateEvidence(ev)
+	if res.Status != domain.ValidationValid && res.Status != "PASSED" {
+		t.Errorf("Expected status VALID for clean utility record, got %s", res.Status)
 	}
 }
 
@@ -48,7 +74,7 @@ func TestValidateEmptyEvidence(t *testing.T) {
 	}
 
 	res := ValidateEvidence(ev)
-	if res.Status != "FAILED" {
+	if res.Status != domain.ValidationFailed && res.Status != "FAILED" {
 		t.Errorf("Expected status FAILED for empty evidence, got %s", res.Status)
 	}
 }

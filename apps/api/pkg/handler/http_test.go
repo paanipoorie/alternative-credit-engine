@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/paanipoorie/alternative-credit-engine/apps/api/pkg/domain"
@@ -125,8 +126,19 @@ TXN002,2026-01-05 14:00:00,1200.0,debit,HPCL Fuel,Fuel,SUCCESS,merchant_qr`
 	if len(ev.UPITransactions) != 2 {
 		t.Errorf("Expected 2 transactions, got %d", len(ev.UPITransactions))
 	}
-	if ev.Provenance.ValidationStatus != "PASSED" {
-		t.Errorf("Expected validation PASSED, got %s", ev.Provenance.ValidationStatus)
+	if ev.Provenance.ValidationStatus != domain.ValidationValid && ev.Provenance.ValidationStatus != "PASSED" {
+		t.Errorf("Expected validation VALID or PASSED, got %s", ev.Provenance.ValidationStatus)
+	}
+
+	// Test POST /api/evidence/process
+	processJSON := `{"filename":"upi_statement.csv","mime_type":"text/csv","content":"txn_id,date,amount,type,counterparty,description,status,category\nTXN-001,2026-01-02 10:00:00,1000,credit,Client,Payment,SUCCESS,p2p"}`
+	processReq := httptest.NewRequest("POST", "/api/evidence/process", strings.NewReader(processJSON))
+	processReq.Header.Set("Content-Type", "application/json")
+	processRec := httptest.NewRecorder()
+	mux.ServeHTTP(processRec, processReq)
+
+	if processRec.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK from /api/evidence/process, got %d: %s", processRec.Code, processRec.Body.String())
 	}
 
 	// Test GET /api/evidence

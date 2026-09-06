@@ -280,9 +280,9 @@ func CalculateConfidence(evidenceList []domain.CanonicalEvidence) int {
 			e = 0.95 // Default high extraction confidence for structured format
 		}
 		v := 1.0
-		if ev.Provenance.ValidationStatus == "WARNING" {
+		if ev.Provenance.ValidationStatus == domain.ValidationPartial || ev.Provenance.ValidationStatus == domain.ValidationNeedsReview || ev.Provenance.ValidationStatus == "WARNING" {
 			v = 0.80
-		} else if ev.Provenance.ValidationStatus == "FAILED" {
+		} else if ev.Provenance.ValidationStatus == domain.ValidationFailed || ev.Provenance.ValidationStatus == "FAILED" {
 			v = 0.40
 		}
 

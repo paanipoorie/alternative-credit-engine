@@ -872,6 +872,7 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
               <tr>
                 <th className="px-4 py-3">Document Name</th>
                 <th className="px-4 py-3">Source Channel</th>
+                <th className="px-4 py-3">Pipeline Origin</th>
                 <th className="px-4 py-3">Period</th>
                 <th className="px-4 py-3 text-center">Records</th>
                 <th className="px-4 py-3 text-center">Confidence</th>
@@ -890,8 +891,11 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                   period_end: prov.period_end,
                   source_quality: prov.source_quality_score,
                   extraction_confidence: prov.extraction_confidence,
+                  origin: prov.origin,
                   provenance: prov,
                 } as CanonicalEvidence;
+
+                const isLive = prov.origin === 'LIVE_N8N_GEMINI' || prov.origin === 'LIVE_GEMINI' || prov.origin === 'LIVE_PARSER';
 
                 return (
                   <tr key={prov.evidence_id || i} className="hover:bg-[#1D2125]/70 transition">
@@ -902,6 +906,18 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-[#1E2C3D] text-[#7AB3EF] border border-[#3D78C2]/30 uppercase">
                         {prov.source_type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                        isLive
+                          ? 'bg-[#132E20] text-[#4ADE80] border border-[#16A05A]/30'
+                          : 'bg-[#1D2125] text-[#A7AFB5] border border-[#2B3035]'
+                      }`}>
+                        {prov.origin === 'LIVE_N8N_GEMINI' && '⚡ LIVE (n8n + Gemini)'}
+                        {prov.origin === 'LIVE_GEMINI' && '⚡ LIVE (Gemini AI)'}
+                        {prov.origin === 'LIVE_PARSER' && '⚡ LIVE (Extracted)'}
+                        {(!prov.origin || prov.origin === 'SYNTHETIC_DEMO') && '📊 DEMO / BENCHMARK'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-[#A7AFB5]">

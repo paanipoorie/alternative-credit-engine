@@ -1,0 +1,123 @@
+{
+  "name": "Alternative Credit Engine - Evidence Ingestion Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evidence-process",
+        "options": {}
+      },
+      "name": "Webhook Ingest",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300],
+      "webhookId": "evidence-process-webhook"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.action }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "classify",
+              "output": 0
+            },
+            {
+              "value2": "extract",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash",
+        "prompt": "You are a financial document classification engine for alternative credit underwriting.\nClassify the document into: upi, utility, gig_earnings, gst, telecom, or unknown.\nDocument Text snippet:\n{{ $json.body.extracted_text }}\n\nReturn strict JSON: {\"source_type\":\"...\",\"document_type\":\"...\",\"provider\":\"...\",\"period\":\"...\",\"confidence\":0.96,\"reason\":\"...\"}"
+      },
+      "name": "Gemini Classification",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [560, 200]
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash",
+        "prompt": "You are a financial document extraction engine for alternative credit underwriting.\nExtract canonical structured financial records from this {{ $json.body.source_type }} evidence.\nGUARDRAIL: Do NOT calculate credit scores or make lending decisions.\nDocument Text:\n{{ $json.body.extracted_text }}\n\nReturn strict JSON structure with upi_transactions, utility_payments, gig_payouts, or gstr_records."
+      },
+      "name": "Gemini Extraction",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [560, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Ingest": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Gemini Classification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Classification": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Extraction": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

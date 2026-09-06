@@ -30,7 +30,7 @@ type EvidenceService struct {
 func NewEvidenceService() *EvidenceService {
 	return &EvidenceService{
 		evidenceList: make([]*domain.CanonicalEvidence, 0),
-		aiProvider:   ai.NewGeminiProvider(),
+		aiProvider:   ai.NewN8NProvider(ai.NewGeminiProvider()),
 	}
 }
 
@@ -254,7 +254,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 					Category:     row[7],
 				})
 			}
-			evidenceList = append(evidenceList, domain.CanonicalEvidence{
+			evItem := domain.CanonicalEvidence{
 				ID:                   "EV-UPI-DEMO-001",
 				CustomerID:           "DEMO-RAJESH-001",
 				SourceType:           domain.SourceUPI,
@@ -263,6 +263,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 				PeriodEnd:            "2026-03-31",
 				SourceQuality:        0.95,
 				ExtractionConfidence: 0.98,
+				Origin:               domain.OriginSyntheticDemo,
 				Provenance: domain.ProvenanceItem{
 					EvidenceID:           "EV-UPI-DEMO-001",
 					SourceType:           domain.SourceUPI,
@@ -273,11 +274,14 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 					RecordCount:          len(txns),
 					ExtractionConfidence: 0.98,
 					SourceQualityScore:   0.95,
-					ValidationStatus:     "PASSED",
+					ValidationStatus:     domain.ValidationValid,
+					Origin:               domain.OriginSyntheticDemo,
 					IngestedAt:           time.Now(),
 				},
 				UPITransactions: txns,
-			})
+			}
+			evItem.Events = extractor.NormalizeToEvents(&evItem)
+			evidenceList = append(evidenceList, evItem)
 		}
 	}
 
@@ -286,7 +290,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 	if utilBytes, err := os.ReadFile(utilPath); err == nil {
 		var bills []domain.UtilityPayment
 		if err := json.Unmarshal(utilBytes, &bills); err == nil {
-			evidenceList = append(evidenceList, domain.CanonicalEvidence{
+			evItem := domain.CanonicalEvidence{
 				ID:                   "EV-UTIL-DEMO-002",
 				CustomerID:           "DEMO-RAJESH-001",
 				SourceType:           domain.SourceUtility,
@@ -295,6 +299,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 				PeriodEnd:            "2026-03-31",
 				SourceQuality:        0.90,
 				ExtractionConfidence: 0.95,
+				Origin:               domain.OriginSyntheticDemo,
 				Provenance: domain.ProvenanceItem{
 					EvidenceID:           "EV-UTIL-DEMO-002",
 					SourceType:           domain.SourceUtility,
@@ -305,11 +310,14 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 					RecordCount:          len(bills),
 					ExtractionConfidence: 0.95,
 					SourceQualityScore:   0.90,
-					ValidationStatus:     "PASSED",
+					ValidationStatus:     domain.ValidationValid,
+					Origin:               domain.OriginSyntheticDemo,
 					IngestedAt:           time.Now(),
 				},
 				UtilityPayments: bills,
-			})
+			}
+			evItem.Events = extractor.NormalizeToEvents(&evItem)
+			evidenceList = append(evidenceList, evItem)
 		}
 	}
 
@@ -318,7 +326,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 	if gigBytes, err := os.ReadFile(gigPath); err == nil {
 		var payouts []domain.GigPayout
 		if err := json.Unmarshal(gigBytes, &payouts); err == nil {
-			evidenceList = append(evidenceList, domain.CanonicalEvidence{
+			evItem := domain.CanonicalEvidence{
 				ID:                   "EV-GIG-DEMO-003",
 				CustomerID:           "DEMO-RAJESH-001",
 				SourceType:           domain.SourceGig,
@@ -327,6 +335,7 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 				PeriodEnd:            "2026-03-31",
 				SourceQuality:        0.95,
 				ExtractionConfidence: 0.96,
+				Origin:               domain.OriginSyntheticDemo,
 				Provenance: domain.ProvenanceItem{
 					EvidenceID:           "EV-GIG-DEMO-003",
 					SourceType:           domain.SourceGig,
@@ -337,11 +346,14 @@ func LoadSyntheticGroundTruth() []domain.CanonicalEvidence {
 					RecordCount:          len(payouts),
 					ExtractionConfidence: 0.96,
 					SourceQualityScore:   0.95,
-					ValidationStatus:     "PASSED",
+					ValidationStatus:     domain.ValidationValid,
+					Origin:               domain.OriginSyntheticDemo,
 					IngestedAt:           time.Now(),
 				},
 				GigPayouts: payouts,
-			})
+			}
+			evItem.Events = extractor.NormalizeToEvents(&evItem)
+			evidenceList = append(evidenceList, evItem)
 		}
 	}
 

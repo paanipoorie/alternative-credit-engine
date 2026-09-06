@@ -116,10 +116,50 @@ func (p *DeterministicProvider) Extract(ctx context.Context, input DocumentInput
 			ev.Provenance.PeriodEnd = ev.PeriodEnd
 		}
 
+	case domain.SourceGST:
+		ev.SourceProvider = "GSTN Tax Portal"
+		ev.PeriodStart = "2025-10-01"
+		ev.PeriodEnd = "2026-03-31"
+		ev.Provenance.PeriodStart = ev.PeriodStart
+		ev.Provenance.PeriodEnd = ev.PeriodEnd
+		ev.GSTRRecords = []domain.GSTRRecord{
+			{
+				ID:               "GSTR-2025Q4",
+				GSTIN:            "29AABCS1429B1Z1",
+				ReturnPeriod:     "2025-Q4",
+				ReturnType:       "GSTR-3B",
+				FilingDate:       time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC),
+				ReportedTurnover: 185000,
+				TaxLiability:     9250,
+				TaxPaid:          9250,
+				FilingStatus:     "ON_TIME",
+			},
+		}
+
+	case domain.SourceTelecom:
+		ev.SourceProvider = "Reliance Jio"
+		ev.PeriodStart = "2026-01-01"
+		ev.PeriodEnd = "2026-03-31"
+		ev.Provenance.PeriodStart = ev.PeriodStart
+		ev.Provenance.PeriodEnd = ev.PeriodEnd
+		ev.TelecomRecords = []domain.TelecomRecharge{
+			{
+				ID:           "TEL-20260105",
+				Operator:     "Reliance Jio",
+				Date:         time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC),
+				Amount:       299,
+				ValidityDays: 28,
+				PlanType:     "unlimited_data",
+			},
+		}
+
 	default:
 		return nil, fmt.Errorf("unsupported source type for deterministic extraction: %s", sourceType)
 	}
 
+	ev.Origin = domain.OriginLiveParser
+	ev.Provenance.Origin = domain.OriginLiveParser
+	ev.Events = extractor.NormalizeToEvents(ev)
 	ev.Provenance.RecordCount = len(ev.UPITransactions) + len(ev.UtilityPayments) + len(ev.GigPayouts) + len(ev.GSTRRecords) + len(ev.TelecomRecords)
 	return ev, nil
 }

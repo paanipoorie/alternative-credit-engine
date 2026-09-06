@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/paanipoorie/alternative-credit-engine/apps/api/pkg/domain"
+	"github.com/paanipoorie/alternative-credit-engine/apps/api/pkg/extractor"
 )
 
 // GeminiProvider implements AIProvider using Google's Gemini Models
@@ -210,6 +211,7 @@ Return JSON in this format:
 	ev.SourceType = sourceType
 	ev.ExtractionConfidence = 0.94
 	ev.SourceQuality = 0.92
+	ev.Origin = domain.OriginLiveGemini
 	ev.Provenance = domain.ProvenanceItem{
 		EvidenceID:           ev.ID,
 		SourceType:           sourceType,
@@ -217,9 +219,11 @@ Return JSON in this format:
 		DocumentFormat:       input.Format,
 		ExtractionConfidence: 0.94,
 		SourceQualityScore:   0.92,
-		ValidationStatus:     "PASSED",
+		ValidationStatus:     domain.ValidationValid,
+		Origin:               domain.OriginLiveGemini,
 		IngestedAt:           time.Now(),
 	}
+	ev.Events = extractor.NormalizeToEvents(&ev)
 
 	return &ev, nil
 }

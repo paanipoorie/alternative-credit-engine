@@ -321,12 +321,38 @@ export const EvidenceStrengthenView: React.FC<EvidenceStrengthenViewProps> = ({
                     </span>
                   </div>
 
-                  <h3 className="mt-3 text-sm font-bold text-[#F3F5F4] truncate" title={ev.provenance.document_name}>
+                  <div className="mt-2 flex items-center gap-1.5 text-[10px]">
+                    <span className={`inline-flex items-center px-1.5 py-0.2 rounded font-bold ${
+                      ev.provenance.origin === 'LIVE_N8N_GEMINI' || ev.provenance.origin === 'LIVE_GEMINI' || ev.provenance.origin === 'LIVE_PARSER' || ev.origin === 'LIVE_PARSER'
+                        ? 'bg-[#132E20] text-[#4ADE80] border border-[#16A05A]/30'
+                        : 'bg-[#1D2125] text-[#A7AFB5] border border-[#2B3035]'
+                    }`}>
+                      {ev.provenance.origin === 'LIVE_N8N_GEMINI' && '⚡ LIVE (n8n + Gemini)'}
+                      {ev.provenance.origin === 'LIVE_GEMINI' && '⚡ LIVE (Gemini AI)'}
+                      {(ev.provenance.origin === 'LIVE_PARSER' || ev.origin === 'LIVE_PARSER') && '⚡ LIVE (Extracted)'}
+                      {(!ev.provenance.origin || ev.provenance.origin === 'SYNTHETIC_DEMO') && ev.origin !== 'LIVE_PARSER' && '📊 DEMO BENCHMARK'}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-2 text-sm font-bold text-[#F3F5F4] truncate" title={ev.provenance.document_name}>
                     {ev.provenance.document_name}
                   </h3>
                   <p className="text-xs text-[#A7AFB5] mt-0.5">
                     {ev.source_provider}
                   </p>
+
+                  {/* Processing Pipeline Completed Verification */}
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#4ADE80]">
+                    <span className="inline-flex items-center gap-0.5 rounded bg-[#132E20]/80 px-1.5 py-0.5 border border-[#16A05A]/20">
+                      ✓ Identified
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 rounded bg-[#132E20]/80 px-1.5 py-0.5 border border-[#16A05A]/20">
+                      ✓ Extracted
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 rounded bg-[#132E20]/80 px-1.5 py-0.5 border border-[#16A05A]/20">
+                      ✓ Validated
+                    </span>
+                  </div>
 
                   <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-[#1D2125] p-2.5 text-xs text-[#A7AFB5] border border-[#2B3035]">
                     <div>

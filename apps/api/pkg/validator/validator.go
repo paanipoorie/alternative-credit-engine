@@ -10,7 +10,7 @@ import (
 // ValidateEvidence performs rigorous validation of extracted records before scoring
 func ValidateEvidence(ev *domain.CanonicalEvidence) domain.ValidationResult {
 	res := domain.ValidationResult{
-		Status: "PASSED",
+		Status: domain.ValidationValid,
 	}
 
 	var notes []string
@@ -27,23 +27,27 @@ func ValidateEvidence(ev *domain.CanonicalEvidence) domain.ValidationResult {
 	case domain.SourceTelecom:
 		validateTelecom(ev, &res, &notes)
 	default:
-		res.Status = "FAILED"
+		res.Status = domain.ValidationFailed
 		res.Errors = append(res.Errors, "Unknown evidence source type")
 		notes = append(notes, "Evidence failed classification or unsupported source type.")
 	}
 
 	if len(res.Errors) > 0 {
-		res.Status = "FAILED"
-	} else if len(res.Warnings) > 0 {
-		res.Status = "WARNING"
+		res.Status = domain.ValidationFailed
+	} else if res.InvalidCount > 0 && res.ValidCount > 0 {
+		res.Status = domain.ValidationPartial
+	} else if len(res.Warnings) > 0 || (ev.ExtractionConfidence > 0 && ev.ExtractionConfidence < 0.70) {
+		res.Status = domain.ValidationNeedsReview
+	} else {
+		res.Status = domain.ValidationValid
 	}
 
 	ev.Provenance.ValidationStatus = res.Status
 	ev.Provenance.ValidationNotes = notes
 	if ev.SourceQuality <= 0 {
-		if res.Status == "PASSED" {
+		if res.Status == domain.ValidationValid || res.Status == domain.ValidationPassed {
 			ev.SourceQuality = 0.95
-		} else if res.Status == "WARNING" {
+		} else if res.Status == domain.ValidationPartial || res.Status == domain.ValidationNeedsReview {
 			ev.SourceQuality = 0.80
 		} else {
 			ev.SourceQuality = 0.40

@@ -50,9 +50,59 @@ type ClassificationResult struct {
 	Reason       string         `json:"reason,omitempty"`
 }
 
+// ValidationStatus constants
+const (
+	ValidationValid       = "VALID"
+	ValidationPassed      = "PASSED"
+	ValidationPartial     = "PARTIAL"
+	ValidationNeedsReview = "NEEDS_REVIEW"
+	ValidationFailed      = "FAILED"
+)
+
+// EvidenceOrigin represents the provenance origin of the processed data
+type EvidenceOrigin string
+
+const (
+	OriginLiveN8NGemini EvidenceOrigin = "LIVE_N8N_GEMINI"
+	OriginLiveGemini    EvidenceOrigin = "LIVE_GEMINI"
+	OriginLiveParser    EvidenceOrigin = "LIVE_PARSER"
+	OriginSyntheticDemo EvidenceOrigin = "SYNTHETIC_DEMO"
+)
+
+// EvidenceDocument represents an uploaded document in the evidence pipeline
+type EvidenceDocument struct {
+	ID                   string           `json:"id"`
+	Filename             string           `json:"filename"`
+	MimeType             string           `json:"mime_type"`
+	Format               DocumentFormat   `json:"format"`
+	SourceType           SourceType       `json:"source_type"`
+	UploadedAt           time.Time        `json:"uploaded_at"`
+	ProcessingStatus     ProcessingStatus `json:"processing_status"`
+	ExtractionConfidence float64          `json:"extraction_confidence"`
+	ValidationStatus     string           `json:"validation_status"`
+	ValidationNotes      []string         `json:"validation_notes,omitempty"`
+	RecordCount          int              `json:"record_count"`
+	Origin               EvidenceOrigin   `json:"origin"`
+}
+
+// EvidenceEvent represents a normalized canonical financial event across all sources
+type EvidenceEvent struct {
+	ID         string                 `json:"id"`
+	Timestamp  time.Time              `json:"timestamp"`
+	SourceType SourceType             `json:"source_type"`
+	EventType  string                 `json:"event_type"` // "transaction", "bill_payment", "gig_earning", "tax_filing", "telecom_recharge"
+	Amount     float64                `json:"amount"`
+	Direction  string                 `json:"direction"` // "credit", "debit", "inflow", "outflow", "neutral"
+	Category   string                 `json:"category"`
+	Status     string                 `json:"status"` // "SUCCESS", "PAID_ON_TIME", "PAID_LATE", etc.
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Confidence float64                `json:"confidence"`
+	Provenance ProvenanceItem         `json:"provenance"`
+}
+
 // ValidationResult represents validation checks performed on extracted evidence
 type ValidationResult struct {
-	Status       string   `json:"status"` // "PASSED", "WARNING", "FAILED"
+	Status       string   `json:"status"` // "VALID", "PARTIAL", "NEEDS_REVIEW", "FAILED" (also "PASSED")
 	ValidCount   int      `json:"valid_count"`
 	InvalidCount int      `json:"invalid_count"`
 	Errors       []string `json:"errors,omitempty"`
@@ -133,22 +183,25 @@ type ProvenanceItem struct {
 	RecordCount          int            `json:"record_count"`
 	ExtractionConfidence float64        `json:"extraction_confidence"` // 0.0 to 1.0
 	SourceQualityScore   float64        `json:"source_quality_score"`  // 0.0 to 1.0
-	ValidationStatus     string         `json:"validation_status"`     // "PASSED", "WARNING", "FAILED"
+	ValidationStatus     string         `json:"validation_status"`     // "VALID", "PARTIAL", "NEEDS_REVIEW", "FAILED", "PASSED"
 	ValidationNotes      []string       `json:"validation_notes,omitempty"`
+	Origin               EvidenceOrigin `json:"origin"`                // "LIVE_N8N_GEMINI", "LIVE_GEMINI", "LIVE_PARSER", "SYNTHETIC_DEMO"
 	IngestedAt           time.Time      `json:"ingested_at"`
 }
 
 // CanonicalEvidence represents normalized data bundle from any source
 type CanonicalEvidence struct {
-	ID                   string         `json:"id"`
-	CustomerID           string         `json:"customer_id"`
-	SourceType           SourceType     `json:"source_type"`
-	SourceProvider       string         `json:"source_provider"`
-	PeriodStart          string         `json:"period_start"`
-	PeriodEnd            string         `json:"period_end"`
-	SourceQuality        float64        `json:"source_quality"`
-	ExtractionConfidence float64        `json:"extraction_confidence"`
-	Provenance           ProvenanceItem `json:"provenance"`
+	ID                   string          `json:"id"`
+	CustomerID           string          `json:"customer_id"`
+	SourceType           SourceType      `json:"source_type"`
+	SourceProvider       string          `json:"source_provider"`
+	PeriodStart          string          `json:"period_start"`
+	PeriodEnd            string          `json:"period_end"`
+	SourceQuality        float64         `json:"source_quality"`
+	ExtractionConfidence float64         `json:"extraction_confidence"`
+	Provenance           ProvenanceItem  `json:"provenance"`
+	Origin               EvidenceOrigin  `json:"origin"`
+	Events               []EvidenceEvent `json:"events,omitempty"`
 
 	// Typed record sets (populated depending on SourceType)
 	UPITransactions []UPITransaction  `json:"upi_transactions,omitempty"`
