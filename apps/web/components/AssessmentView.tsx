@@ -430,36 +430,36 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                   c.affected_evidence?.some(e => e.toLowerCase().includes('upi') || e.toLowerCase().includes('bank'))
                 );
                 const isReview = profile.assessment_band === 'REVIEW_REQUIRED';
-                const state = !isAvailable
-                  ? 'not_provided'
+                const statusLabel = !isAvailable
+                  ? 'Not provided'
                   : (hasIssue && isReview)
-                  ? 'needs_verification'
-                  : 'verifies';
+                  ? 'Needs Verification'
+                  : 'Verified';
 
                 return (
-                  <div className="rounded-xl p-3.5 border border-[#2B3035] bg-[#1D2125] flex flex-col justify-between">
-                    <div>
-                      <div className="font-semibold text-xs text-[#F3F5F4]">UPI / Bank</div>
-                      <div className="text-[11px] text-[#A7AFB5] mt-0.5">Cash-flow regularity</div>
-                    </div>
-                    <div className="mt-3 pt-2 border-t border-[#2B3035]/60">
-                      <span
-                        className={`text-[11px] flex items-center gap-1 ${
-                          state === 'verifies'
-                            ? 'text-[#4ADE80]'
-                            : state === 'needs_verification'
-                            ? 'text-[#FBBF24]'
+                  <div>
+                    <div
+                      className={`rounded-xl p-3.5 border text-xs ${
+                        isAvailable
+                          ? 'bg-[#1E2C3D] border-[#3D78C2]/30 text-[#7AB3EF]'
+                          : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
+                      }`}
+                    >
+                      <div className="font-medium flex items-center justify-between">
+                        <span>UPI / Bank</span>
+                        <span className={`text-[11px] ${
+                          isAvailable
+                            ? (hasIssue && isReview ? 'text-[#FBBF24]' : 'text-[#4ADE80]')
                             : 'text-[#737C83]'
-                        }`}
-                      >
-                        {state === 'verifies' && <Check className="h-3 w-3 inline shrink-0 text-[#4ADE80]" />}
-                        {state === 'verifies'
-                          ? 'Verifies'
-                          : state === 'needs_verification'
-                          ? 'Needs verification'
-                          : 'Not provided'}
-                      </span>
+                        }`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <span className="text-[10px] block mt-1 text-[#A7AFB5]">Cash-flow regularity</span>
                     </div>
+                    <span className="block text-[10px] text-[#737C83] mt-1.5 px-0.5">
+                      Verifies cash-flow regularity
+                    </span>
                   </div>
                 );
               })()}
@@ -467,26 +467,29 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
               {/* 2. Work Earnings */}
               {(() => {
                 const isAvailable = Boolean(profile.coverage_breakdown?.gig_earnings);
-                const state = isAvailable ? 'verifies' : 'not_provided';
 
                 return (
-                  <div className="rounded-xl p-3.5 border border-[#2B3035] bg-[#1D2125] flex flex-col justify-between">
-                    <div>
-                      <div className="font-semibold text-xs text-[#F3F5F4]">Work Earnings</div>
-                      <div className="text-[11px] text-[#A7AFB5] mt-0.5">Income continuity</div>
+                  <div>
+                    <div
+                      className={`rounded-xl p-3.5 border text-xs ${
+                        isAvailable
+                          ? 'bg-[#132E20] border-[#16A05A]/30 text-[#4ADE80]'
+                          : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
+                      }`}
+                    >
+                      <div className="font-medium flex items-center justify-between">
+                        <span>Work Earnings</span>
+                        <span className={`text-[11px] ${
+                          isAvailable ? 'text-[#4ADE80]' : 'text-[#737C83]'
+                        }`}>
+                          {isAvailable ? 'Verified' : 'Not provided'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] block mt-1 text-[#A7AFB5]">Platform income continuity</span>
                     </div>
-                    <div className="mt-3 pt-2 border-t border-[#2B3035]/60">
-                      <span
-                        className={`text-[11px] flex items-center gap-1 ${
-                          state === 'verifies'
-                            ? 'text-[#4ADE80]'
-                            : 'text-[#737C83]'
-                        }`}
-                      >
-                        {state === 'verifies' && <Check className="h-3 w-3 inline shrink-0 text-[#4ADE80]" />}
-                        {state === 'verifies' ? 'Verifies' : 'Not provided'}
-                      </span>
-                    </div>
+                    <span className="block text-[10px] text-[#737C83] mt-1.5 px-0.5">
+                      Verifies income continuity
+                    </span>
                   </div>
                 );
               })()}
@@ -496,36 +499,36 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 const isAvailable = Boolean(profile.coverage_breakdown?.utility);
                 const hasLateUtility = profile.features?.utility_on_time_ratio !== undefined && profile.features.utility_on_time_ratio < 0.60;
                 const isReview = profile.assessment_band === 'REVIEW_REQUIRED';
-                const state = !isAvailable
-                  ? 'not_provided'
+                const statusLabel = !isAvailable
+                  ? 'Not provided'
                   : (hasLateUtility && isReview)
-                  ? 'needs_verification'
-                  : 'verifies';
+                  ? 'Needs Verification'
+                  : 'Verified';
 
                 return (
-                  <div className="rounded-xl p-3.5 border border-[#2B3035] bg-[#1D2125] flex flex-col justify-between">
-                    <div>
-                      <div className="font-semibold text-xs text-[#F3F5F4]">Utility Bills</div>
-                      <div className="text-[11px] text-[#A7AFB5] mt-0.5">Payment discipline</div>
-                    </div>
-                    <div className="mt-3 pt-2 border-t border-[#2B3035]/60">
-                      <span
-                        className={`text-[11px] flex items-center gap-1 ${
-                          state === 'verifies'
-                            ? 'text-[#4ADE80]'
-                            : state === 'needs_verification'
-                            ? 'text-[#FBBF24]'
+                  <div>
+                    <div
+                      className={`rounded-xl p-3.5 border text-xs ${
+                        isAvailable
+                          ? 'bg-[#332511] border-[#D89A24]/30 text-[#FBBF24]'
+                          : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
+                      }`}
+                    >
+                      <div className="font-medium flex items-center justify-between">
+                        <span>Utility Bills</span>
+                        <span className={`text-[11px] ${
+                          isAvailable
+                            ? (hasLateUtility && isReview ? 'text-[#FBBF24]' : 'text-[#4ADE80]')
                             : 'text-[#737C83]'
-                        }`}
-                      >
-                        {state === 'verifies' && <Check className="h-3 w-3 inline shrink-0 text-[#4ADE80]" />}
-                        {state === 'verifies'
-                          ? 'Verifies'
-                          : state === 'needs_verification'
-                          ? 'Needs verification'
-                          : 'Not provided'}
-                      </span>
+                        }`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <span className="text-[10px] block mt-1 text-[#A7AFB5]">On-time payment discipline</span>
                     </div>
+                    <span className="block text-[10px] text-[#737C83] mt-1.5 px-0.5">
+                      Verifies payment discipline
+                    </span>
                   </div>
                 );
               })()}
@@ -533,26 +536,29 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
               {/* 4. GST Returns */}
               {(() => {
                 const isAvailable = Boolean(profile.coverage_breakdown?.gst);
-                const state = isAvailable ? 'verifies' : 'not_provided';
 
                 return (
-                  <div className="rounded-xl p-3.5 border border-[#2B3035] bg-[#1D2125] flex flex-col justify-between">
-                    <div>
-                      <div className="font-semibold text-xs text-[#F3F5F4]">GST Returns</div>
-                      <div className="text-[11px] text-[#A7AFB5] mt-0.5">Business activity</div>
+                  <div>
+                    <div
+                      className={`rounded-xl p-3.5 border text-xs ${
+                        isAvailable
+                          ? 'bg-[#2D1B36] border-[#A855F7]/30 text-[#D8B4FE]'
+                          : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
+                      }`}
+                    >
+                      <div className="font-medium flex items-center justify-between">
+                        <span>GST Returns</span>
+                        <span className={`text-[11px] ${
+                          isAvailable ? 'text-[#4ADE80]' : 'text-[#737C83]'
+                        }`}>
+                          {isAvailable ? 'Verified' : 'Not provided'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] block mt-1 text-[#A7AFB5]">Business filing</span>
                     </div>
-                    <div className="mt-3 pt-2 border-t border-[#2B3035]/60">
-                      <span
-                        className={`text-[11px] flex items-center gap-1 ${
-                          state === 'verifies'
-                            ? 'text-[#4ADE80]'
-                            : 'text-[#737C83]'
-                        }`}
-                      >
-                        {state === 'verifies' && <Check className="h-3 w-3 inline shrink-0 text-[#4ADE80]" />}
-                        {state === 'verifies' ? 'Verifies' : 'Not provided'}
-                      </span>
-                    </div>
+                    <span className="block text-[10px] text-[#737C83] mt-1.5 px-0.5">
+                      Verifies business activity
+                    </span>
                   </div>
                 );
               })()}
@@ -560,26 +566,29 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
               {/* 5. Telecom */}
               {(() => {
                 const isAvailable = Boolean(profile.coverage_breakdown?.telecom);
-                const state = isAvailable ? 'verifies' : 'not_provided';
 
                 return (
-                  <div className="rounded-xl p-3.5 border border-[#2B3035] bg-[#1D2125] flex flex-col justify-between">
-                    <div>
-                      <div className="font-semibold text-xs text-[#F3F5F4]">Telecom</div>
-                      <div className="text-[11px] text-[#A7AFB5] mt-0.5">Recharge continuity</div>
+                  <div>
+                    <div
+                      className={`rounded-xl p-3.5 border text-xs ${
+                        isAvailable
+                          ? 'bg-[#1A2536] border-[#60A5FA]/30 text-[#93C5FD]'
+                          : 'bg-[#1D2125] border-[#2B3035] text-[#737C83]'
+                      }`}
+                    >
+                      <div className="font-medium flex items-center justify-between">
+                        <span>Telecom</span>
+                        <span className={`text-[11px] ${
+                          isAvailable ? 'text-[#4ADE80]' : 'text-[#737C83]'
+                        }`}>
+                          {isAvailable ? 'Verified' : 'Not provided'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] block mt-1 text-[#A7AFB5]">Active recharge history</span>
                     </div>
-                    <div className="mt-3 pt-2 border-t border-[#2B3035]/60">
-                      <span
-                        className={`text-[11px] flex items-center gap-1 ${
-                          state === 'verifies'
-                            ? 'text-[#4ADE80]'
-                            : 'text-[#737C83]'
-                        }`}
-                      >
-                        {state === 'verifies' && <Check className="h-3 w-3 inline shrink-0 text-[#4ADE80]" />}
-                        {state === 'verifies' ? 'Verifies' : 'Not provided'}
-                      </span>
-                    </div>
+                    <span className="block text-[10px] text-[#737C83] mt-1.5 px-0.5">
+                      Verifies recharge continuity
+                    </span>
                   </div>
                 );
               })()}
@@ -587,26 +596,25 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
               {/* 6. Evidence Quality */}
               {(() => {
                 const isReview = profile.assessment_band === 'REVIEW_REQUIRED' || profile.evidence_quality?.overall_quality === 'LOW' || profile.evidence_quality?.overall_quality === 'UNRELIABLE';
-                const state = isReview ? 'needs_verification' : 'verifies';
 
                 return (
-                  <div className="rounded-xl p-3.5 border border-[#2B3035] bg-[#1D2125] flex flex-col justify-between">
-                    <div>
-                      <div className="font-semibold text-xs text-[#F3F5F4]">Evidence Quality</div>
-                      <div className="text-[11px] text-[#A7AFB5] mt-0.5">Evidence reliability</div>
-                    </div>
-                    <div className="mt-3 pt-2 border-t border-[#2B3035]/60">
-                      <span
-                        className={`text-[11px] flex items-center gap-1 ${
-                          state === 'verifies'
-                            ? 'text-[#4ADE80]'
-                            : 'text-[#FBBF24]'
-                        }`}
-                      >
-                        {state === 'verifies' && <Check className="h-3 w-3 inline shrink-0 text-[#4ADE80]" />}
-                        {state === 'verifies' ? 'Verifies' : 'Needs verification'}
+                  <div>
+                    <div className="rounded-xl p-3.5 border bg-[#1D2125] border-[#2B3035] text-xs">
+                      <div className="font-medium flex items-center justify-between text-[#F3F5F4]">
+                        <span>Evidence Quality</span>
+                        <span className={`text-[11px] ${
+                          isReview ? 'text-[#FBBF24]' : 'text-[#4ADE80]'
+                        }`}>
+                          {isReview ? 'Needs Verification' : 'Verified'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] block mt-1 text-[#737C83]">
+                        {profile.evidence_quality?.observation_window || 'Jan 2026 – Mar 2026'}
                       </span>
                     </div>
+                    <span className="block text-[10px] text-[#737C83] mt-1.5 px-0.5">
+                      Verifies evidence reliability
+                    </span>
                   </div>
                 );
               })()}
