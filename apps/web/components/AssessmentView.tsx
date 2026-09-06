@@ -75,37 +75,82 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Top Banner & Customer Context */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-[#DDE3E0] bg-white p-6 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[#EBF2FC] px-2.5 py-0.5 text-xs font-semibold text-[#1F4E8C]">
-              Assessment ID: {profile.assessment_id}
-            </span>
-            <span className="text-xs text-[#858585]">
-              {new Date(profile.created_at).toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
+      <div className="rounded-2xl border border-[#DDE3E0] bg-white p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#DDE3E0] pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-[#EBF2FC] px-2.5 py-0.5 text-xs font-semibold text-[#1F4E8C]">
+                Assessment ID: {profile.assessment_id}
+              </span>
+              <span className="text-xs text-[#858585]">
+                {new Date(profile.created_at).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+            <h2 className="mt-2 text-xl font-bold text-[#1F4E8C]">
+              {profile.declared_profile?.full_name || profile.customer_name || 'Rajesh Kumar'}
+            </h2>
+            <p className="text-xs text-[#5F6368] capitalize">
+              {(profile.declared_profile?.employment_type || profile.persona_type || 'gig_worker').replace('_', ' ')} • {profile.declared_profile?.city || 'Bengaluru'} ({profile.declared_profile?.pincode || '560038'})
+            </p>
           </div>
-          <h2 className="mt-2 text-xl font-bold text-[#1F4E8C]">
-            {profile.customer_name || 'Rajesh Kumar'}
-          </h2>
-          <p className="text-xs text-[#5F6368]">
-            Persona: <span className="font-semibold text-[#222222]">Gig Delivery Partner / Informal Worker</span> • Transparent Behavioural Assessment
-          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onUploadMore}
+              className="rounded-lg border border-[#DDE3E0] bg-[#F7F9F8] px-3.5 py-2 text-xs font-semibold text-[#1F4E8C] hover:bg-[#EBF2FC] transition shadow-xs"
+            >
+              + Strengthen With More Evidence
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onUploadMore}
-            className="rounded-lg border border-[#DDE3E0] bg-[#F7F9F8] px-3.5 py-2 text-xs font-semibold text-[#1F4E8C] hover:bg-[#EBF2FC] transition shadow-xs"
-          >
-            + Ingest More Evidence
-          </button>
+        {/* Declared Context Attributes Summary */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-xl bg-[#F7F9F8] p-4 text-xs">
+          <div>
+            <span className="block text-[10px] uppercase font-bold text-[#858585]">Declared Monthly Income</span>
+            <span className="font-bold text-[#0B9348] text-sm">
+              {formatCurrency(profile.declared_profile?.monthly_income || 32000)}
+            </span>
+            <span className="block text-[10px] text-[#5F6368] capitalize">
+              via {(profile.declared_profile?.income_channel || 'upi').replace('_', ' ')}
+            </span>
+          </div>
+
+          <div>
+            <span className="block text-[10px] uppercase font-bold text-[#858585]">Declared Monthly Expenses</span>
+            <span className="font-bold text-[#222222] text-sm">
+              {formatCurrency(profile.declared_profile?.monthly_expenses || 16500)}
+            </span>
+            <span className="block text-[10px] text-[#5F6368]">
+              Estimated household cost
+            </span>
+          </div>
+
+          <div>
+            <span className="block text-[10px] uppercase font-bold text-[#858585]">Age & Dependents</span>
+            <span className="font-bold text-[#222222] text-sm">
+              {profile.declared_profile?.age || 29} yrs • {profile.declared_profile?.dependents || 2} dependents
+            </span>
+            <span className="block text-[10px] text-[#5F6368]">
+              Household stability
+            </span>
+          </div>
+
+          <div>
+            <span className="block text-[10px] uppercase font-bold text-[#858585]">Evidence Ingested</span>
+            <span className="font-bold text-[#1F4E8C] text-sm">
+              {profile.provenance.length} Sources Verified
+            </span>
+            <span className="block text-[10px] text-[#5F6368]">
+              {profile.data_coverage_score}% Alternative coverage
+            </span>
+          </div>
         </div>
       </div>
 

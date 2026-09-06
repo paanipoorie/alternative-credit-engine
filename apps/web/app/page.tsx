@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
-import { EvidenceUploader } from '../components/EvidenceUploader';
+import { StructuredProfileForm } from '../components/StructuredProfileForm';
+import { EvidenceStrengthenView } from '../components/EvidenceStrengthenView';
 import { ProcessingModal } from '../components/ProcessingModal';
 import { AssessmentView } from '../components/AssessmentView';
 import { RecordsDrawer } from '../components/RecordsDrawer';
-import { AssessmentProfile, CanonicalEvidence } from '../lib/types';
+import { AssessmentProfile, CanonicalEvidence, DeclaredProfile } from '../lib/types';
 import {
   fetchEvidenceList,
   uploadEvidenceFile,
@@ -16,13 +17,26 @@ import {
   fetchDemoProfile,
 } from '../lib/api';
 
+const DEFAULT_INITIAL_PROFILE: DeclaredProfile = {
+  full_name: 'Rajesh Kumar',
+  age: 29,
+  city: 'Bengaluru',
+  pincode: '560038',
+  employment_type: 'gig_worker',
+  monthly_income: 32000,
+  income_channel: 'upi',
+  monthly_expenses: 16500,
+  dependents: 2,
+};
+
 export default function Home() {
+  const [declaredProfile, setDeclaredProfile] = useState<DeclaredProfile>(DEFAULT_INITIAL_PROFILE);
   const [evidenceList, setEvidenceList] = useState<CanonicalEvidence[]>([]);
   const [assessment, setAssessment] = useState<AssessmentProfile | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   const [inspectEvidence, setInspectEvidence] = useState<CanonicalEvidence | null>(null);
-  const [activeScreen, setActiveScreen] = useState<'upload' | 'processing' | 'assessment'>('upload');
+  const [activeStep, setActiveStep] = useState<'profile' | 'evidence' | 'processing' | 'assessment'>('profile');
 
   // Load existing session evidence on mount
   useEffect(() => {
@@ -34,6 +48,11 @@ export default function Home() {
       })
       .catch((err) => console.log('API not ready or local mode:', err));
   }, []);
+
+  const handleProfileContinue = (profile: DeclaredProfile) => {
+    setDeclaredProfile(profile);
+    setActiveStep('evidence');
+  };
 
   const handleEvidenceAdded = (ev: CanonicalEvidence) => {
     setEvidenceList((prev) => {
@@ -52,38 +71,37 @@ export default function Home() {
   };
 
   const handleStartAssessment = () => {
-    setActiveScreen('processing');
+    setActiveStep('processing');
     setIsProcessing(true);
   };
 
   const handleProcessingComplete = async () => {
     try {
-      const profile = await analyzeProfile(evidenceList);
+      const profile = await analyzeProfile(declaredProfile, evidenceList);
       setAssessment(profile);
-      setActiveScreen('assessment');
+      setActiveStep('assessment');
     } catch (err) {
       console.error('Assessment failed, falling back to demo ground truth:', err);
       const demo = await fetchDemoProfile();
       setAssessment(demo);
-      setActiveScreen('assessment');
+      setActiveStep('assessment');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleLoadDemo = async () => {
+  const handleLoadDemoCustomer = async () => {
     setIsLoadingSample(true);
     try {
-      // Fetch ground truth profile directly
+      setDeclaredProfile(DEFAULT_INITIAL_PROFILE);
       const profile = await fetchDemoProfile();
       setAssessment(profile);
-      
-      // Also sync evidence list
+
       const list = await fetchEvidenceList().catch(() => []);
       if (list && list.length > 0) {
         setEvidenceList(list);
       }
-      setActiveScreen('assessment');
+      setActiveStep('assessment');
     } catch (err) {
       console.error('Failed to load demo profile:', err);
     } finally {
@@ -118,7 +136,8 @@ export default function Home() {
     }
     setEvidenceList([]);
     setAssessment(null);
-    setActiveScreen('upload');
+    setDeclaredProfile(DEFAULT_INITIAL_PROFILE);
+    setActiveStep('profile');
   };
 
   return (
@@ -126,34 +145,44 @@ export default function Home() {
       {/* Header Bar */}
       <Header
         onReset={handleReset}
-        onLoadDemo={handleLoadDemo}
+        onLoadDemo={handleLoadDemoCustomer}
         isLoadingDemo={isLoadingSample}
         hasAssessment={!!assessment}
       />
 
       {/* Main Container */}
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        {activeScreen === 'upload' && (
-          <EvidenceUploader
+        {activeStep === 'profile' && (
+          <StructuredProfileForm
+            initialProfile={declaredProfile}
+            onContinue={handleProfileContinue}
+          />
+        )}
+
+        {activeStep === 'evidence' && (
+          <EvidenceStrengthenView
+            declaredProfile={declaredProfile}
             evidenceList={evidenceList}
             onEvidenceAdded={handleEvidenceAdded}
             onEvidenceRemoved={handleEvidenceRemoved}
+            onInspectEvidence={(ev) => setInspectEvidence(ev)}
+            onBack={() => setActiveStep('profile')}
             onStartAssessment={handleStartAssessment}
             onLoadSyntheticSample={handleLoadSyntheticSample}
             isLoadingSample={isLoadingSample}
           />
         )}
 
-        {activeScreen === 'processing' && (
+        {activeStep === 'processing' && (
           <ProcessingModal onComplete={handleProcessingComplete} />
         )}
 
-        {activeScreen === 'assessment' && assessment && (
+        {activeStep === 'assessment' && assessment && (
           <AssessmentView
             profile={assessment}
             evidenceList={evidenceList}
             onInspectEvidence={(ev) => setInspectEvidence(ev)}
-            onUploadMore={() => setActiveScreen('upload')}
+            onUploadMore={() => setActiveStep('evidence')}
             onReset={handleReset}
           />
         )}

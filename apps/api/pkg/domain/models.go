@@ -230,17 +230,31 @@ type ExplainableReason struct {
 	Impact        string     `json:"impact"` // "HIGH", "MEDIUM", "LOW"
 }
 
+// DeclaredProfile represents the applicant's self-reported financial context
+type DeclaredProfile struct {
+	FullName        string  `json:"full_name"`
+	Age             int     `json:"age"`
+	City            string  `json:"city"`
+	Pincode         string  `json:"pincode"`
+	EmploymentType  string  `json:"employment_type"` // "salaried", "self_employed", "gig_worker", "business_owner", "informal", "other"
+	MonthlyIncome   float64 `json:"monthly_income"`
+	IncomeChannel   string  `json:"income_channel"` // "bank_transfer", "upi", "cash", "cheque", "multiple"
+	MonthlyExpenses float64 `json:"monthly_expenses"`
+	Dependents      int     `json:"dependents"`
+}
+
 // AssessmentProfile represents the complete evaluation result
 type AssessmentProfile struct {
 	AssessmentID      string               `json:"assessment_id"`
 	CustomerID        string               `json:"customer_id"`
 	CustomerName      string               `json:"customer_name,omitempty"`
 	PersonaType       string               `json:"persona_type,omitempty"` // "gig_worker", "small_merchant", "first_time_borrower", "informal_worker"
-	BehavioralScore   float64              `json:"behavioral_score"`       // 0 - 100
-	FinalScore        int                  `json:"final_score"`            // 300 - 900 (300 + 6 * BehavioralScore)
-	RiskBand          string               `json:"risk_band"`              // "Low Risk", "Low-Moderate Risk", "Moderate Risk", "Higher Risk"
-	ConfidenceScore   int                  `json:"confidence_score"`       // 0 - 100%
-	DataCoverageScore int                  `json:"data_coverage_score"`    // 0 - 100%
+	DeclaredProfile   *DeclaredProfile     `json:"declared_profile,omitempty"`
+	BehavioralScore   float64              `json:"behavioral_score"`    // 0 - 100
+	FinalScore        int                  `json:"final_score"`         // 300 - 900 (300 + 6 * BehavioralScore)
+	RiskBand          string               `json:"risk_band"`           // "Low Risk", "Low-Moderate Risk", "Moderate Risk", "Higher Risk"
+	ConfidenceScore   int                  `json:"confidence_score"`    // 0 - 100%
+	DataCoverageScore int                  `json:"data_coverage_score"` // 0 - 100%
 	Dimensions        BehavioralDimensions `json:"dimensions"`
 	DimensionWeights  map[string]float64   `json:"dimension_weights"`
 	PositiveFactors   []ExplainableReason  `json:"positive_factors"`

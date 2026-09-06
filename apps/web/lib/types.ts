@@ -116,11 +116,24 @@ export interface DerivedFeatures {
   utility_avg_delay_days: number;
 }
 
+export interface DeclaredProfile {
+  full_name: string;
+  age: number;
+  city: string;
+  pincode: string;
+  employment_type: 'salaried' | 'self_employed' | 'gig_worker' | 'business_owner' | 'informal' | 'other';
+  monthly_income: number;
+  income_channel: 'bank_transfer' | 'upi' | 'cash' | 'cheque' | 'multiple';
+  monthly_expenses: number;
+  dependents: number;
+}
+
 export interface AssessmentProfile {
   assessment_id: string;
   customer_id: string;
   customer_name?: string;
   persona_type?: string;
+  declared_profile?: DeclaredProfile;
   behavioral_score: number;
   final_score: number;
   risk_band: string;

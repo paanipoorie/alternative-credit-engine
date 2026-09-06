@@ -1,4 +1,4 @@
-import { AssessmentProfile, CanonicalEvidence, WhatIfResponse } from './types';
+import { AssessmentProfile, CanonicalEvidence, DeclaredProfile, WhatIfResponse } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -45,14 +45,18 @@ export async function clearAllEvidence(): Promise<void> {
   }
 }
 
-export async function analyzeProfile(evidence?: CanonicalEvidence[]): Promise<AssessmentProfile> {
+export async function analyzeProfile(
+  declaredProfile?: DeclaredProfile,
+  evidence?: CanonicalEvidence[]
+): Promise<AssessmentProfile> {
   const res = await fetch(`${API_BASE}/api/assess/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      customer_id: 'CUST-RAJESH-001',
-      customer_name: 'Rajesh Kumar',
-      persona_type: 'gig_worker',
+      customer_id: 'CUST-APPLICANT-001',
+      customer_name: declaredProfile?.full_name || 'Verified Applicant',
+      persona_type: declaredProfile?.employment_type || 'gig_worker',
+      declared_profile: declaredProfile,
       evidence: evidence,
     }),
   });

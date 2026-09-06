@@ -14,11 +14,12 @@ import (
 var defaultService = service.NewEvidenceService()
 
 type AnalyzeRequest struct {
-	CustomerID   string                     `json:"customer_id,omitempty"`
-	CustomerName string                     `json:"customer_name,omitempty"`
-	PersonaType  string                     `json:"persona_type,omitempty"`
-	EvidenceIDs  []string                   `json:"evidence_ids,omitempty"`
-	Evidence     []domain.CanonicalEvidence `json:"evidence,omitempty"`
+	CustomerID      string                     `json:"customer_id,omitempty"`
+	CustomerName    string                     `json:"customer_name,omitempty"`
+	PersonaType     string                     `json:"persona_type,omitempty"`
+	DeclaredProfile *domain.DeclaredProfile    `json:"declared_profile,omitempty"`
+	EvidenceIDs     []string                   `json:"evidence_ids,omitempty"`
+	Evidence        []domain.CanonicalEvidence `json:"evidence,omitempty"`
 }
 
 type WhatIfRequest struct {
@@ -150,7 +151,19 @@ func handleAnalyze(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile := defaultService.AssessCurrent(req.CustomerID, req.CustomerName, req.PersonaType, req.Evidence)
+	name := req.CustomerName
+	if name == "" && req.DeclaredProfile != nil && req.DeclaredProfile.FullName != "" {
+		name = req.DeclaredProfile.FullName
+	}
+	persona := req.PersonaType
+	if persona == "" && req.DeclaredProfile != nil && req.DeclaredProfile.EmploymentType != "" {
+		persona = req.DeclaredProfile.EmploymentType
+	}
+
+	profile := defaultService.AssessCurrent(req.CustomerID, name, persona, req.Evidence)
+	if req.DeclaredProfile != nil {
+		profile.DeclaredProfile = req.DeclaredProfile
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(profile)
@@ -170,6 +183,17 @@ func handleDemoAssessment(w http.ResponseWriter, r *http.Request) {
 	defaultService.SetEvidenceList(ptrList)
 
 	profile := defaultService.AssessCurrent("DEMO-RAJESH-001", "Rajesh Kumar", "gig_worker", groundTruth)
+	profile.DeclaredProfile = &domain.DeclaredProfile{
+		FullName:        "Rajesh Kumar",
+		Age:             29,
+		City:            "Bengaluru",
+		Pincode:         "560038",
+		EmploymentType:  "gig_worker",
+		MonthlyIncome:   32000,
+		IncomeChannel:   "upi",
+		MonthlyExpenses: 16500,
+		Dependents:      2,
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(profile)
