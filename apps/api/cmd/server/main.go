@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/paanipoorie/alternative-credit-engine/apps/api/pkg/handler"
 )
 
 type HealthResponse struct {
@@ -47,11 +49,14 @@ func main() {
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
-	handler := enableCORS(mux)
+	// Register assessment and calculator routes
+	handler.RegisterRoutes(mux)
+
+	corsHandler := enableCORS(mux)
 
 	server := &http.Server{
 		Addr:         ":" + port,
-		Handler:      handler,
+		Handler:      corsHandler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 	}

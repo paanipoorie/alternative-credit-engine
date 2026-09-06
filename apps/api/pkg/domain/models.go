@@ -6,13 +6,13 @@ import "time"
 type SourceType string
 
 const (
-	SourceUPI        SourceType = "upi"
-	SourceGST        SourceType = "gst"
-	SourceGig        SourceType = "gig_earnings"
-	SourceUtility    SourceType = "utility"
-	SourceTelecom    SourceType = "telecom"
-	SourceEcommerce  SourceType = "ecommerce"
-	SourceVehicle    SourceType = "vehicle"
+	SourceUPI       SourceType = "upi"
+	SourceGST       SourceType = "gst"
+	SourceGig       SourceType = "gig_earnings"
+	SourceUtility   SourceType = "utility"
+	SourceTelecom   SourceType = "telecom"
+	SourceEcommerce SourceType = "ecommerce"
+	SourceVehicle   SourceType = "vehicle"
 )
 
 // DocumentFormat represents the physical file format
@@ -34,7 +34,7 @@ type UPITransaction struct {
 	Type         string    `json:"type"` // "credit" (inflow) or "debit" (outflow)
 	Counterparty string    `json:"counterparty"`
 	Description  string    `json:"description"`
-	Status       string    `json:"status"` // "SUCCESS", "FAILED", "PENDING"
+	Status       string    `json:"status"`             // "SUCCESS", "FAILED", "PENDING"
 	Category     string    `json:"category,omitempty"` // "p2p", "merchant_qr", "salary", "bill_payment", etc.
 }
 
@@ -99,7 +99,7 @@ type ProvenanceItem struct {
 	PeriodEnd            string         `json:"period_end"`
 	RecordCount          int            `json:"record_count"`
 	ExtractionConfidence float64        `json:"extraction_confidence"` // 0.0 to 1.0
-	SourceQualityScore   float64        `json:"source_quality_score"`   // 0.0 to 1.0
+	SourceQualityScore   float64        `json:"source_quality_score"`  // 0.0 to 1.0
 	ValidationStatus     string         `json:"validation_status"`     // "PASSED", "WARNING", "FAILED"
 	ValidationNotes      []string       `json:"validation_notes,omitempty"`
 	IngestedAt           time.Time      `json:"ingested_at"`
@@ -179,11 +179,11 @@ type DerivedFeatures struct {
 
 // BehavioralDimensions holds the 5 core 0-100 dimensional scores
 type BehavioralDimensions struct {
-	CashFlowStability   float64 `json:"cash_flow_stability"`   // Weight: 30%
-	IncomeConsistency   float64 `json:"income_consistency"`    // Weight: 20%
-	PaymentDiscipline   float64 `json:"payment_discipline"`    // Weight: 20%
-	ActivityContinuity  float64 `json:"activity_continuity"`   // Weight: 15%
-	FinancialResilience float64 `json:"financial_resilience"`  // Weight: 15%
+	CashFlowStability   float64 `json:"cash_flow_stability"`  // Weight: 30%
+	IncomeConsistency   float64 `json:"income_consistency"`   // Weight: 20%
+	PaymentDiscipline   float64 `json:"payment_discipline"`   // Weight: 20%
+	ActivityContinuity  float64 `json:"activity_continuity"`  // Weight: 15%
+	FinancialResilience float64 `json:"financial_resilience"` // Weight: 15%
 }
 
 // ExplainableReason provides evidence-traceable explanations
