@@ -8,12 +8,12 @@ interface ProcessingModalProps {
 }
 
 const STAGES = [
-  'File received & validated',
-  'Document classification identified',
-  'Transactions & records extracted',
-  'Data integrity verified',
-  'Financial behaviour calculated',
-  'Generating credit profile',
+  'Evidence received',
+  'Document identified',
+  'Financial information extracted',
+  'Evidence validated',
+  'Financial activity normalized',
+  'Assessment prepared',
 ];
 
 export const ProcessingModal: React.FC<ProcessingModalProps> = ({ onComplete }) => {
