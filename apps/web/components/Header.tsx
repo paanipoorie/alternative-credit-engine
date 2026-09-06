@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold tracking-tight text-[#F3F5F4]">
-                TVS CREDIT
+                Acredit
               </span>
               <span className="rounded-full bg-[#1D2125] px-2.5 py-0.5 text-xs font-semibold text-[#7AB3EF] border border-[#2B3035]">
                 Alternative Intelligence

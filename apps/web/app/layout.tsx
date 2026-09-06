@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Alternative Credit Engine | TVS Credit E.P.I.C.',
+  title: 'Acredit | Alternative Credit Engine',
   description: 'Evidence-first alternative credit assessment system for the invisible customer.',
 };
 

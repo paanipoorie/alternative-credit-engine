@@ -61,7 +61,7 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 	}
 
-	log.Printf("TVS Credit Alternative Credit Engine API running on port %s", port)
+	log.Printf("Acredit Alternative Credit Engine API running on port %s", port)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server error: %v", err)
 	}
