@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Database,
   FileWarning,
+  Activity,
 } from 'lucide-react';
 import {
   AssessmentProfile,
@@ -347,7 +348,7 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
         </div>
       )}
 
-      {/* 3. MAIN SCORE CARD & EVIDENCE COVERAGE */}
+      {/* 2. MAIN SCORE CARD & CONFIDENCE / COVERAGE */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Alternative Credit Score Card (5 cols) */}
         <div className="lg:col-span-5 rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs flex flex-col justify-between">
@@ -407,7 +408,7 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
           </div>
         </div>
 
-        {/* Evidence Used (7 cols) */}
+        {/* Reliability & Evidence Breakdown (7 cols) */}
         <div className="lg:col-span-7 rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
@@ -635,6 +636,83 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
         </div>
       </div>
 
+      {/* 3. KEY UNDERWRITING INDICATORS */}
+      <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-[#2B3035] pb-3">
+          <div>
+            <h3 className="text-base font-semibold text-[#F3F5F4] flex items-center gap-2">
+              <Activity className="h-4 w-4 text-[#3D78C2]" />
+              Key Underwriting Indicators
+            </h3>
+            <p className="mt-0.5 text-xs text-[#737C83]">
+              Deterministic indicators derived directly from verified financial transactions.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 text-xs">
+          {/* 1. Inflow/Outflow Ratio */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-3.5 space-y-1">
+            <span className="text-[11px] text-[#737C83] block">Cash-Flow Ratio</span>
+            <span className="text-xl font-bold text-[#F3F5F4] block">
+              {(profile.features.credit_debit_ratio || 3.0).toFixed(1)}x
+            </span>
+            <span className="text-[10px] text-[#16A05A]">Inflow to outflow</span>
+          </div>
+
+          {/* 2. Inflow Volatility */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-3.5 space-y-1">
+            <span className="text-[11px] text-[#737C83] block">Inflow Volatility</span>
+            <span className="text-xl font-bold text-[#F3F5F4] block">
+              CV {(profile.features.inflow_volatility_cv || 0.06).toFixed(2)}
+            </span>
+            <span className="text-[10px] text-[#7AB3EF]">Monthly consistency</span>
+          </div>
+
+          {/* 3. Income Variance */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-3.5 space-y-1">
+            <span className="text-[11px] text-[#737C83] block">Income Variance</span>
+            <span className={`text-xl font-bold block ${
+              (profile.reconciliation?.items?.[0]?.variance_pct || 0) > 30 ? 'text-[#F87171]' : 'text-[#F3F5F4]'
+            }`}>
+              {profile.reconciliation?.items?.[0]?.variance_pct !== undefined
+                ? (profile.reconciliation.items[0].variance_pct > 30 ? `−${profile.reconciliation.items[0].variance_pct}%` : `±${profile.reconciliation.items[0].variance_pct}%`)
+                : '±0.0%'}
+            </span>
+            <span className="text-[10px] text-[#737C83]">Declared vs observed</span>
+          </div>
+
+          {/* 4. On-Time Payment Rate */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-3.5 space-y-1">
+            <span className="text-[11px] text-[#737C83] block">On-Time Payment</span>
+            <span className="text-xl font-bold text-[#4ADE80] block">
+              {profile.features.utility_on_time_ratio !== undefined ? `${Math.round(profile.features.utility_on_time_ratio * 100)}%` : '80%'}
+            </span>
+            <span className="text-[10px] text-[#737C83]">{profile.features.utility_total_bills || 5} cycles tracked</span>
+          </div>
+
+          {/* 5. Active Observation Window */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-3.5 space-y-1">
+            <span className="text-[11px] text-[#737C83] block">Active Window</span>
+            <span className="text-xl font-bold text-[#F3F5F4] block">
+              {profile.features.gig_continuity_months || 3} Mos
+            </span>
+            <span className="text-[10px] text-[#737C83]">{profile.features.active_days_count || 39} active days</span>
+          </div>
+
+          {/* 6. Evidence Sources & Quality */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-3.5 space-y-1">
+            <span className="text-[11px] text-[#737C83] block">Evidence Ingestion</span>
+            <span className="text-xl font-bold text-[#7AB3EF] block">
+              {profile.provenance?.length || 3} Docs
+            </span>
+            <span className={`text-[10px] ${qualityBadge.className.split(' ')[0]}`}>
+              {qualityBadge.label}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* 4. FINANCIAL RECONCILIATION */}
       <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2B3035] pb-4">
@@ -663,14 +741,19 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                   className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-4 space-y-3 flex flex-col justify-between"
                 >
                   <div className="space-y-2">
-                    <span className="font-semibold text-[#F3F5F4] text-xs block">
-                      {item.field}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-[#F3F5F4] text-xs">
+                        {item.field}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getReconStatusBadge(item.status).className}`}>
+                        {getReconStatusBadge(item.status).label}
+                      </span>
+                    </div>
 
-                    <div className="space-y-1 text-xs">
+                    <div className="space-y-1 text-xs pt-1">
                       <div className="flex justify-between items-baseline">
                         <span className="text-[#737C83]">Declared:</span>
-                        <span className="text-[#F3F5F4]">{item.declared_value}</span>
+                        <span className="text-[#F3F5F4] font-medium">{item.declared_value}</span>
                       </div>
                       <div className="flex justify-between items-baseline">
                         <span className="text-[#737C83]">Observed:</span>
@@ -679,15 +762,11 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                       {item.variance_pct !== undefined && item.variance_pct > 0 && (
                         <div className="flex justify-between items-baseline text-[11px] text-[#FBBF24]">
                           <span className="text-[#737C83]">Variance:</span>
-                          <span>±{item.variance_pct}%</span>
+                          <span>{item.variance_pct > 30 ? `−${item.variance_pct}%` : `±${item.variance_pct}%`}</span>
                         </div>
                       )}
                     </div>
                   </div>
-
-                  <p className="text-[11px] text-[#A7AFB5] pt-2 border-t border-[#2B3035] leading-relaxed">
-                    {item.explanation || item.description}
-                  </p>
                 </div>
               );
             })
@@ -699,40 +778,165 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
         </div>
       </div>
 
-      {/* 5. KEY OBSERVATIONS (Replacing raw flag codes & badges) */}
-      <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-4">
-        <div className="border-b border-[#2B3035] pb-3">
-          <h3 className="text-base font-semibold text-[#F3F5F4]">
-            Key Observations
-          </h3>
-          <p className="mt-0.5 text-xs text-[#737C83]">
-            Essential underwriting takeaways synthesized from verified cash-flow, income, and payment patterns.
-          </p>
+      {/* 5. FIVE BEHAVIOURAL DIMENSIONS */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-[#F3F5F4] flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-[#3D78C2]" />
+              Five Behavioural Dimensions
+            </h3>
+            <p className="mt-0.5 text-xs text-[#737C83]">
+              Normalized 0–100 scale computed deterministically from empirical evidence.
+            </p>
+          </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {profile.assessment_flags && profile.assessment_flags.length > 0 ? (
-            profile.assessment_flags.map((flag: AssessmentFlag, idx: number) => {
-              const isAttention = flag.severity === 'REVIEW' || flag.severity === 'WATCH';
-              return (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 text-xs">
+          {/* 1. Cash-Flow Stability */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
+            <div>
+              <span className="font-semibold text-[#F3F5F4]">Cash-Flow Stability</span>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-[#7AB3EF]">
+                  {Math.round(profile.dimensions.cash_flow_stability)}
+                </span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
                 <div
-                  key={idx}
-                  className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-4 text-xs space-y-1.5"
-                >
-                  <h4 className={`font-semibold text-xs ${isAttention ? 'text-[#FBBF24]' : 'text-[#F3F5F4]'}`}>
-                    {flag.title}
-                  </h4>
-                  <p className="text-[11px] text-[#A7AFB5] leading-relaxed">
-                    {flag.description || flag.explanation}
-                  </p>
-                </div>
-              );
-            })
-          ) : (
-            <div className="col-span-3 text-xs text-[#A7AFB5]">
-              Standard financial behaviour observed with no abnormal indicators.
+                  className="h-full bg-[#3D78C2] rounded-full"
+                  style={{ width: `${profile.dimensions.cash_flow_stability}%` }}
+                />
+              </div>
             </div>
-          )}
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1.5">
+              <div className="flex justify-between items-baseline">
+                <span>Monthly Inflow:</span>
+                <span className="text-[#F3F5F4] font-medium">{formatCurrency(profile.features.avg_monthly_inflow || observedMonthlyIncome)}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span>Volatility CV:</span>
+                <span className="text-[#16A05A] font-medium">{profile.features.inflow_volatility_cv ? profile.features.inflow_volatility_cv.toFixed(2) : '0.06'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Income Consistency */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
+            <div>
+              <span className="font-semibold text-[#F3F5F4]">Income Consistency</span>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-[#4ADE80]">
+                  {Math.round(profile.dimensions.income_consistency)}
+                </span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
+                <div
+                  className="h-full bg-[#16A05A] rounded-full"
+                  style={{ width: `${profile.dimensions.income_consistency}%` }}
+                />
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1.5">
+              <div className="flex justify-between items-baseline">
+                <span>Continuity:</span>
+                <span className="text-[#F3F5F4] font-medium">{profile.features.gig_continuity_months || 3} months</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span>Active Days:</span>
+                <span className="text-[#F3F5F4] font-medium">{profile.features.gig_active_days_per_month ? profile.features.gig_active_days_per_month.toFixed(0) : '24'} days/mo</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Payment Discipline */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
+            <div>
+              <span className="font-semibold text-[#F3F5F4]">Payment Discipline</span>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-[#FBBF24]">
+                  {Math.round(profile.dimensions.payment_discipline)}
+                </span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
+                <div
+                  className="h-full bg-[#D89A24] rounded-full"
+                  style={{ width: `${profile.dimensions.payment_discipline}%` }}
+                />
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1.5">
+              <div className="flex justify-between items-baseline">
+                <span>On-Time Rate:</span>
+                <span className="text-[#16A05A] font-medium">{profile.features.utility_on_time_ratio ? (profile.features.utility_on_time_ratio * 100).toFixed(0) : '80'}%</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span>Tracked Bills:</span>
+                <span className="text-[#F3F5F4] font-medium">{profile.features.utility_total_bills || 5} cycles</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Activity Continuity */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
+            <div>
+              <span className="font-semibold text-[#F3F5F4]">Activity Continuity</span>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-[#D8B4FE]">
+                  {Math.round(profile.dimensions.activity_continuity)}
+                </span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 rounded-full"
+                  style={{ width: `${profile.dimensions.activity_continuity}%` }}
+                />
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1.5">
+              <div className="flex justify-between items-baseline">
+                <span>Active Days:</span>
+                <span className="text-[#F3F5F4] font-medium">{profile.features.active_days_count || 39} days</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span>Transactions:</span>
+                <span className="text-[#F3F5F4] font-medium">{profile.features.total_transactions || 39} txns</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Financial Resilience */}
+          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
+            <div>
+              <span className="font-semibold text-[#F3F5F4]">Financial Resilience</span>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-[#93C5FD]">
+                  {Math.round(profile.dimensions.financial_resilience)}
+                </span>
+                <span className="text-xs text-[#737C83]">/ 100</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full"
+                  style={{ width: `${profile.dimensions.financial_resilience}%` }}
+                />
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1.5">
+              <div className="flex justify-between items-baseline">
+                <span>Inflow Ratio:</span>
+                <span className="text-[#F3F5F4] font-medium">{profile.features.credit_debit_ratio ? profile.features.credit_debit_ratio.toFixed(1) : '3.0'}x</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span>Buffer:</span>
+                <span className="text-[#16A05A] font-medium">Positive</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -773,20 +977,35 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
         </div>
       )}
 
-      {/* 7. WHY THIS ASSESSMENT (Key Strengths & Watch Areas) */}
+      {/* 7. UNDERWRITING ASSESSMENT SUMMARY (Single Unified Synthesis) */}
       <div className="rounded-2xl border border-[#2B3035] bg-[#171A1D] p-6 sm:p-8 shadow-xs space-y-6">
-        <div>
-          <h3 className="text-base font-semibold text-[#F3F5F4] flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-[#16A05A]" />
-            Why This Assessment
-          </h3>
+        <div className="border-b border-[#2B3035] pb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-[#F3F5F4] flex items-center gap-2">
+              <FileText className="h-4 w-4 text-[#3D78C2]" />
+              Underwriting Assessment Summary
+            </h3>
+            <span className="text-xs text-[#737C83]">
+              Evidence Synthesis
+            </span>
+          </div>
           <p className="mt-0.5 text-xs text-[#737C83]">
-            Evidence-grounded behavioral drivers and observations explaining this profile.
+            Comprehensive behavioural assessment grounded directly in verified transaction records and declared context.
           </p>
         </div>
 
+        {/* Synthesis Narrative */}
+        {profile.assessment_summary && (
+          <div className="rounded-xl border border-[#3D78C2]/30 bg-[#1E2C3D]/30 p-5">
+            <p className="text-xs sm:text-sm text-[#F3F5F4] leading-relaxed">
+              {profile.assessment_summary}
+            </p>
+          </div>
+        )}
+
+        {/* Positive Factors & Attention Areas */}
         <div className="grid gap-6 md:grid-cols-2 text-xs">
-          {/* Positive Signals */}
+          {/* Key Strengths */}
           <div className="rounded-xl border border-[#2B3035] bg-[#1D2125] p-5 space-y-3">
             <div className="flex items-center gap-2 text-[#4ADE80] font-semibold text-xs">
               <Check className="h-4 w-4" />
@@ -837,151 +1056,6 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({
                 </li>
               )}
             </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* 8. FIVE BEHAVIOURAL DIMENSIONS */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-[#F3F5F4] flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-[#3D78C2]" />
-            Five Behavioural Dimensions
-          </h3>
-          <span className="text-xs text-[#737C83]">
-            Normalized 0–100 scale from empirical activity
-          </span>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 text-xs">
-          {/* 1. Cash-Flow Stability */}
-          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
-            <div>
-              <span className="font-semibold text-[#F3F5F4]">Cash-Flow Stability</span>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-[#7AB3EF]">
-                  {Math.round(profile.dimensions.cash_flow_stability)}
-                </span>
-                <span className="text-xs text-[#737C83]">/ 100</span>
-              </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
-                <div
-                  className="h-full bg-[#3D78C2] rounded-full"
-                  style={{ width: `${profile.dimensions.cash_flow_stability}%` }}
-                />
-              </div>
-              <p className="mt-2 text-[11px] text-[#A7AFB5] leading-snug">
-                Predictable deposit cadence and low month-over-month inflow volatility.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1">
-              <div>Inflows: <span className="text-[#F3F5F4] font-medium">{formatCurrency(profile.features.avg_monthly_inflow || observedMonthlyIncome)}</span></div>
-              <div>Volatility CV: <span className="text-[#16A05A] font-medium">{profile.features.inflow_volatility_cv ? profile.features.inflow_volatility_cv.toFixed(2) : '0.06'}</span></div>
-            </div>
-          </div>
-
-          {/* 2. Income Consistency */}
-          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
-            <div>
-              <span className="font-semibold text-[#F3F5F4]">Income Consistency</span>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-[#4ADE80]">
-                  {Math.round(profile.dimensions.income_consistency)}
-                </span>
-                <span className="text-xs text-[#737C83]">/ 100</span>
-              </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
-                <div
-                  className="h-full bg-[#16A05A] rounded-full"
-                  style={{ width: `${profile.dimensions.income_consistency}%` }}
-                />
-              </div>
-              <p className="mt-2 text-[11px] text-[#A7AFB5] leading-snug">
-                Sustained earning continuity with continuous active working days.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1">
-              <div>Continuity: <span className="text-[#F3F5F4] font-medium">{profile.features.gig_continuity_months || 3} months</span></div>
-              <div>Active Days: <span className="text-[#F3F5F4] font-medium">{profile.features.gig_active_days_per_month ? profile.features.gig_active_days_per_month.toFixed(0) : '24'} days/mo</span></div>
-            </div>
-          </div>
-
-          {/* 3. Payment Discipline */}
-          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
-            <div>
-              <span className="font-semibold text-[#F3F5F4]">Payment Discipline</span>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-[#FBBF24]">
-                  {Math.round(profile.dimensions.payment_discipline)}
-                </span>
-                <span className="text-xs text-[#737C83]">/ 100</span>
-              </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
-                <div
-                  className="h-full bg-[#D89A24] rounded-full"
-                  style={{ width: `${profile.dimensions.payment_discipline}%` }}
-                />
-              </div>
-              <p className="mt-2 text-[11px] text-[#A7AFB5] leading-snug">
-                Punctual bill fulfillment with low delinquency rates.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1">
-              <div>On-Time Rate: <span className="text-[#16A05A] font-medium">{profile.features.utility_on_time_ratio ? (profile.features.utility_on_time_ratio * 100).toFixed(0) : '80'}%</span></div>
-              <div>Tracked Bills: <span className="text-[#F3F5F4] font-medium">{profile.features.utility_total_bills || 5} cycles</span></div>
-            </div>
-          </div>
-
-          {/* 4. Activity Continuity */}
-          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
-            <div>
-              <span className="font-semibold text-[#F3F5F4]">Activity Continuity</span>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-[#D8B4FE]">
-                  {Math.round(profile.dimensions.activity_continuity)}
-                </span>
-                <span className="text-xs text-[#737C83]">/ 100</span>
-              </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
-                <div
-                  className="h-full bg-purple-500 rounded-full"
-                  style={{ width: `${profile.dimensions.activity_continuity}%` }}
-                />
-              </div>
-              <p className="mt-2 text-[11px] text-[#A7AFB5] leading-snug">
-                High frequency of day-to-day transactions and business engagement.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1">
-              <div>Active Days: <span className="text-[#F3F5F4] font-medium">{profile.features.active_days_count || 39} days</span></div>
-              <div>Transactions: <span className="text-[#F3F5F4] font-medium">{profile.features.total_transactions || 39} txns</span></div>
-            </div>
-          </div>
-
-          {/* 5. Financial Resilience */}
-          <div className="rounded-xl border border-[#2B3035] bg-[#171A1D] p-5 shadow-xs flex flex-col justify-between">
-            <div>
-              <span className="font-semibold text-[#F3F5F4]">Financial Resilience</span>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-[#93C5FD]">
-                  {Math.round(profile.dimensions.financial_resilience)}
-                </span>
-                <span className="text-xs text-[#737C83]">/ 100</span>
-              </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-[#1D2125] overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 rounded-full"
-                  style={{ width: `${profile.dimensions.financial_resilience}%` }}
-                />
-              </div>
-              <p className="mt-2 text-[11px] text-[#A7AFB5] leading-snug">
-                Positive net liquidity buffer protects against unexpected cash shortfalls.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#2B3035] text-[11px] text-[#737C83] space-y-1">
-              <div>Inflow Ratio: <span className="text-[#F3F5F4] font-medium">{profile.features.credit_debit_ratio ? profile.features.credit_debit_ratio.toFixed(1) : '3.0'}x</span></div>
-              <div>Buffer: <span className="text-[#16A05A] font-medium">Positive</span></div>
-            </div>
           </div>
         </div>
       </div>

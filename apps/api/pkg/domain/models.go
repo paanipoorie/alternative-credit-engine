@@ -499,6 +499,7 @@ type AssessmentProfile struct {
 	EvidenceTraces    []EvidenceTraceItem    `json:"evidence_traces,omitempty"`
 	AssessmentFlags   []AssessmentFlag       `json:"assessment_flags,omitempty"`
 	CoverageBreakdown map[string]bool        `json:"coverage_breakdown"`
+	AssessmentSummary string                 `json:"assessment_summary,omitempty"`
 	CreatedAt         time.Time              `json:"created_at"`
 	Disclaimer        string                 `json:"disclaimer"`
 }

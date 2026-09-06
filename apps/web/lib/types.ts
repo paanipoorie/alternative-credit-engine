@@ -267,6 +267,7 @@ export interface AssessmentProfile {
   evidence_traces?: EvidenceTraceItem[];
   assessment_flags?: AssessmentFlag[];
   coverage_breakdown: Record<string, boolean>;
+  assessment_summary?: string;
   created_at: string;
   disclaimer: string;
 }
